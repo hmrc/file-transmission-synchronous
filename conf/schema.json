@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Create Case API",
+  "description": "An API to create specified case in the system automatically",
+  "type": "object",
+  "properties": {
+    "AcknowledgementReference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "ApplicationType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "enum": [
+        "Route1"
+      ]
+    },
+    "OriginatingSystem": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "enum": [
+        "Digital"
+      ]
+    },
+    "Content": {
+      "type": "object",
+      "properties": {
+        "EntryType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "Import",
+            "Export"
+          ]
+        },
+        "RequestType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "enum": [
+            "C1601",
+            "C1602",
+            "C1603",
+            "Cancellation",
+            "Hold",
+            "New",
+            "Withdrawal or return of goods"
+          ]
+        },
+        "EntryNumber": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "[0-9a-zA-Z]{1}[0-9]{5}[0-9a-zA-Z]{1}"
+        },
+        "Route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "Hold",
+            "Route 1",
+            "Route 1 CAP",
+            "Route 2",
+            "Route 3",
+            "Route 6"
+          ]
+        },
+        "EntryProcessingUnit": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3,
+          "pattern": "[0-9]{3}"
+        },
+        "EntryDate": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 8,
+          "pattern": "([0-9]{8})"
+        },
+        "FreightOption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "enum": [
+            "Air",
+            "Maritime",
+            "Road, rail or roll-on, roll-off (RORO)"
+          ]
+        },
+        "Priority": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128,
+          "enum": [
+            "Explosives/Fireworks",
+            "Live animals",
+            "Human remains"
+          ]
+        },
+        "VesselName": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "VesselEstimatedDate": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 8,
+          "pattern": "([0-9]{8})"
+        },
+        "VesselEstimatedTime": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 6,
+          "pattern": "([0-9]{6})"
+        },
+        "MUCR": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 35
+        },
+        "IsALVS": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5,
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "EORI": {
+          "type": "string",
+          "minLength": 17,
+          "maxLength": 17,
+          "pattern": "([a-zA-Z]{2}[0-9]{15})"
+        },
+        "TelephoneNumber": {
+          "type": "string",
+          "minLength": 11,
+          "maxLength": 11,
+          "pattern": "([0-9]{11})"
+        },
+        "EmailAddress": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 128,
+          "format":"email"
+        }
+      },
+      "required": [
+        "EntryType",
+        "RequestType",
+        "EntryNumber",
+        "Route",
+        "EntryProcessingUnit",
+        "EntryDate",
+        "FreightOption",
+        "EORI",
+        "TelephoneNumber",
+        "EmailAddress"
+
+      ]
+    }
+  },
+  "required": [
+    "AcknowledgementReference",
+    "ApplicationType",
+    "OriginatingSystem",
+    "Content"
+  ]
+}
