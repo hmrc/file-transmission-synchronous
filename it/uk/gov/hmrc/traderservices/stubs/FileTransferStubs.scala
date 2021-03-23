@@ -14,6 +14,7 @@ import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
 import java.net.URLEncoder
 import java.io.InputStream
 import java.io.ByteArrayInputStream
+import uk.gov.hmrc.traderservices.models.FileTransferRequest
 
 trait FileTransferStubs {
   me: WireMockSupport =>
@@ -357,5 +358,19 @@ trait FileTransferStubs {
       sb.append(String.format("%02x", Byte.box(b)))
     sb.toString
   }
+
+  val exampleRequest = FileTransferRequest(
+    conversationId = "1090c5d7-d895-4f15-97b5-aa59ab7468b5",
+    caseReferenceNumber = "PC12010081330XGBNZJO04",
+    applicationName = "Route1",
+    upscanReference = "XYZ0123456789",
+    downloadUrl = "https://s3.amazon.aws/bucket/12345",
+    checksum = "7dd6f04c468c1701cd5e43018fd32ab81c86ddddf90cd038651d4e405df715a4",
+    fileName = "test.pdf",
+    fileMimeType = "image/jpeg",
+    fileSize = Some(12345),
+    batchSize = 1,
+    batchCount = 1
+  )
 
 }

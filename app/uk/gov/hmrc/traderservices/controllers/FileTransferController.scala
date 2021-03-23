@@ -27,6 +27,9 @@ import uk.gov.hmrc.traderservices.connectors.MicroserviceAuthConnector
 import akka.actor.ActorSystem
 import java.util.UUID
 import akka.stream.Materializer
+import play.api.Logger
+import uk.gov.hmrc.traderservices.connectors.ApiError
+import play.api.libs.json.Json
 
 @Singleton
 class FileTransferController @Inject() (
@@ -64,12 +67,19 @@ class FileTransferController @Inject() (
         } {
           // when incoming request's payload validation fails
           case (errorCode, errorMessage) =>
-            Future.successful(BadRequest)
+            Logger(getClass).error(s"$errorCode $errorMessage")
+            Future.successful(
+              BadRequest(Json.toJson(ApiError(errorCode, if (errorMessage.isEmpty()) None else Some(errorMessage))))
+            )
         }
       }
         .recover {
           // last resort fallback when request processing collapses
-          case e => InternalServerError
+          case e: Throwable =>
+            Logger(getClass).error(s"${e.getClass().getName()}: ${e.getMessage()}")
+            InternalServerError(
+              Json.toJson(ApiError("ERROR_UNKNOWN", Option(s"${e.getClass().getName()}: ${e.getMessage()}")))
+            )
         }
     }
 }

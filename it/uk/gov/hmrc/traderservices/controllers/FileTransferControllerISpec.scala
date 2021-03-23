@@ -13,6 +13,7 @@ import play.api.libs.ws.BodyWritable
 import java.nio.charset.StandardCharsets
 import play.api.libs.ws.InMemoryBody
 import akka.util.ByteString
+import uk.gov.hmrc.traderservices.models.FileTransferRequest
 
 class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with FileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
@@ -30,6 +31,23 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
   "FileTransferController" when {
     "POST /transfer-file" should {
+      testFileTransferBadRequest("request with an empty conversationId", exampleRequest.copy(conversationId = ""))
+      testFileTransferBadRequest("request with an empty applicationName", exampleRequest.copy(applicationName = ""))
+      testFileTransferBadRequest("request with invalid applicationName", exampleRequest.copy(applicationName = "FOO"))
+      testFileTransferBadRequest("request with an empty upscanReference", exampleRequest.copy(upscanReference = ""))
+      testFileTransferBadRequest("request with an empty downloadUrl", exampleRequest.copy(downloadUrl = ""))
+      testFileTransferBadRequest("request with an empty checksum", exampleRequest.copy(checksum = ""))
+      testFileTransferBadRequest("request with too long checksum", exampleRequest.copy(checksum = "a" * 65))
+      testFileTransferBadRequest("request with an empty fileName", exampleRequest.copy(fileName = ""))
+      testFileTransferBadRequest("request with too long fileName", exampleRequest.copy(fileName = "a" * 95))
+      testFileTransferBadRequest("request with an empty fileMimeType", exampleRequest.copy(fileMimeType = ""))
+      testFileTransferBadRequest("request with a zero batchSize", exampleRequest.copy(batchSize = 0))
+      testFileTransferBadRequest("request with a zero batchCount", exampleRequest.copy(batchCount = 0))
+      testFileTransferBadRequest(
+        "request with a batchCount greater than batchSize",
+        exampleRequest.copy(batchCount = 2, batchSize = 1)
+      )
+
       testFileTransferSuccess("emptyArray", "Route1", Some(emptyArray))
       testFileTransferSuccess("oneByteArray", "Route1", Some(oneByteArray))
       testFileTransferSuccess("twoBytesArray", "Route1", Some(twoBytesArray))
@@ -143,6 +161,25 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
         .futureValue
 
       result.status shouldBe 202
+      verifyAuthorisationHasHappened()
+    }
+  }
+
+  def testFileTransferBadRequest(description: String, fileTransferRequest: FileTransferRequest) {
+    s"return 400 when processing $description" in new FileTransferTest(
+      fileTransferRequest.fileName,
+      Some(oneByteArray)
+    ) {
+      givenAuthorised()
+      val fileUrl = "https://test.com/123"
+
+      val result = wsClient
+        .url(s"$url/transfer-file")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.toJson(fileTransferRequest))
+        .futureValue
+
+      result.status shouldBe 400
       verifyAuthorisationHasHappened()
     }
   }
