@@ -125,6 +125,7 @@ object FileTransferRequest {
     Validator(
       checkProperty(_.caseReferenceNumber, caseReferenceNumberValidator),
       checkProperty(_.conversationId, conversationIdValidator),
+      checkIfSome(_.correlationId, correlationIdValidator),
       checkProperty(_.applicationName, applicationNameValidator),
       checkProperty(_.upscanReference, upscanReferenceValidator),
       checkProperty(_.downloadUrl, downloadUrlValidator),

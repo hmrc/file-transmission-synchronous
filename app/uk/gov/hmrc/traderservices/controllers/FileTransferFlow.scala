@@ -45,6 +45,8 @@ import scala.concurrent.duration.FiniteDuration
 import java.nio.charset.StandardCharsets
 import java.io.StringWriter
 import java.io.PrintWriter
+import play.api.libs.json.Json
+import uk.gov.hmrc.traderservices.connectors.ApiError
 
 trait FileTransferFlow {
 
@@ -217,11 +219,17 @@ trait FileTransferFlow {
 
         case (_, (Failure(error: FileDownloadException), _)) =>
           Logger(getClass).error(error.getMessage(), error.exception)
-          InternalServerError
+          InternalServerError(
+            Json
+              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
+          )
 
         case (_, (Failure(error: FileDownloadFailure), _)) =>
           Logger(getClass).error(error.getMessage())
-          InternalServerError
+          InternalServerError(
+            Json
+              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
+          )
 
         case (_, (Failure(uploadError), (fileTransferRequest, eisUploadRequest))) =>
           val writer = new StringWriter()
@@ -232,7 +240,15 @@ trait FileTransferFlow {
               .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed because of [${uploadError.getClass
               .getName()}: ${uploadError.getMessage()}].\n$stackTrace"
           )
-          InternalServerError
+          InternalServerError(
+            Json
+              .toJson(
+                ApiError(
+                  "ERROR_FILE_UPLOAD",
+                  Option(s"${uploadError.getClass().getName()}: ${uploadError.getMessage()}")
+                )
+              )
+          )
       }
 
 }

@@ -32,6 +32,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
   "FileTransferController" when {
     "POST /transfer-file" should {
       testFileTransferBadRequest("request with an empty conversationId", exampleRequest.copy(conversationId = ""))
+      testFileTransferBadRequest("request with an empty correlationId", exampleRequest.copy(correlationId = Some("")))
       testFileTransferBadRequest("request with an empty applicationName", exampleRequest.copy(applicationName = ""))
       testFileTransferBadRequest("request with invalid applicationName", exampleRequest.copy(applicationName = "FOO"))
       testFileTransferBadRequest("request with an empty upscanReference", exampleRequest.copy(upscanReference = ""))
