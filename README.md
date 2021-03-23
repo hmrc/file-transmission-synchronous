@@ -2,11 +2,13 @@
 
 # file-transmission-synchronous
 
-Backend microservice exposing an API of Trader Services on MDTP.
+Backend microservice providing an API to transfer a file from the Upscan bucket to the PEGA/Documentum via an EIS endpoint `/cpr/filetransfer/caseevidence/v1`.
 
 ## API
 
 ### Transfer File
+
+Requests file transfer from some `downloadUrl` returned by Upscan callback to `/cpr/filetransfer/caseevidence/v1`.
 
 Method | Path | Description | Authorization
 ---|---|---|---
@@ -62,7 +64,7 @@ Example 400 error response payload
     sm --start TRADER_SERVICES_ROUTE_ONE_STUB
     sbt run
 
-It should then be listening on port 9380
+It should then be listening on port 10003
 
 ### License
 

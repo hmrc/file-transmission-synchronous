@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.http.ws.WSHttp
 class MicroserviceModule(val environment: Environment, val configuration: Configuration) extends AbstractModule {
 
   override def configure(): Unit = {
-    val appName = "trader-services"
+    val appName = "file-transmission-synchronous"
     Logger(getClass).info(s"Starting microservice : $appName : in mode : ${environment.mode}")
 
     bind(classOf[HttpGet]).to(classOf[CustomHttpClient])

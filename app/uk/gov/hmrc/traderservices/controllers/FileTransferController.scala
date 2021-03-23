@@ -46,7 +46,7 @@ class FileTransferController @Inject() (
   final val transferFile: Action[String] =
     Action.async(parseTolerantTextUtf8) { implicit request =>
       withAuthorised {
-        withPayload[TraderServicesFileTransferRequest] { fileTransferRequest =>
+        withPayload[FileTransferRequest] { fileTransferRequest =>
           executeSingleFileTransfer(
             fileTransferRequest
               .copy(

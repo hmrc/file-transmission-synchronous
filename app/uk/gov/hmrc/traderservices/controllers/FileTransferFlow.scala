@@ -53,11 +53,11 @@ trait FileTransferFlow {
   implicit val actorSystem: ActorSystem
 
   final val connectionPool: Flow[
-    (HttpRequest, (TraderServicesFileTransferRequest, HttpRequest)),
-    (Try[HttpResponse], (TraderServicesFileTransferRequest, HttpRequest)),
+    (HttpRequest, (FileTransferRequest, HttpRequest)),
+    (Try[HttpResponse], (FileTransferRequest, HttpRequest)),
     NotUsed
   ] = Http()
-    .superPool[(TraderServicesFileTransferRequest, HttpRequest)]()
+    .superPool[(FileTransferRequest, HttpRequest)]()
 
   /**
     * Akka Stream flow:
@@ -67,11 +67,11 @@ trait FileTransferFlow {
     * - forwards to the upstream endpoint.
     */
   final val fileTransferFlow: Flow[
-    TraderServicesFileTransferRequest,
-    (Try[HttpResponse], (TraderServicesFileTransferRequest, HttpRequest)),
+    FileTransferRequest,
+    (Try[HttpResponse], (FileTransferRequest, HttpRequest)),
     NotUsed
   ] =
-    Flow[TraderServicesFileTransferRequest]
+    Flow[FileTransferRequest]
       .map { fileTransferRequest =>
         val httpRequest = HttpRequest(
           method = HttpMethods.GET,
@@ -147,7 +147,7 @@ trait FileTransferFlow {
               entity = HttpEntity.apply(ContentTypes.`application/json`, fileEncodeAndWrapSource)
             )
 
-            val source: Source[(Try[HttpResponse], (TraderServicesFileTransferRequest, HttpRequest)), NotUsed] =
+            val source: Source[(Try[HttpResponse], (FileTransferRequest, HttpRequest)), NotUsed] =
               Source
                 .single((eisUploadRequest, (fileTransferRequest, eisUploadRequest)))
                 .via(connectionPool)
@@ -187,7 +187,7 @@ trait FileTransferFlow {
       }
 
   final def executeSingleFileTransfer(
-    fileTransferRequest: TraderServicesFileTransferRequest
+    fileTransferRequest: FileTransferRequest
   ): Future[Result] =
     Source
       .single(fileTransferRequest)

@@ -16,20 +16,32 @@
 
 package uk.gov.hmrc.traderservices.models
 
-import java.time.ZonedDateTime
-import play.api.libs.json.Format
 import play.api.libs.json.Json
+import play.api.libs.json.Format
 
-case class UploadedFile(
+case class FileTransferRequest(
+  conversationId: String,
+  caseReferenceNumber: String,
+  applicationName: String,
   upscanReference: String,
   downloadUrl: String,
-  uploadTimestamp: ZonedDateTime,
   checksum: String,
   fileName: String,
   fileMimeType: String,
+  batchSize: Int,
+  batchCount: Int,
+  correlationId: Option[String] = None,
+  // private field, this value will be overwritten
+  // with x-request-id header value in the controller
+  requestId: Option[String] = None,
   fileSize: Option[Int] = None
 )
 
-object UploadedFile {
-  implicit val formats: Format[UploadedFile] = Json.format[UploadedFile]
+object FileTransferRequest {
+
+  implicit val formats: Format[FileTransferRequest] =
+    Json.format[FileTransferRequest]
+
+  implicit val validate: Validator.Validate[FileTransferRequest] =
+    Validator.always
 }

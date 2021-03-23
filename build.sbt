@@ -36,7 +36,7 @@ lazy val root = (project in file("."))
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
     scalaVersion := "2.12.12",
-    PlayKeys.playDefaultPort := 9380,
+    PlayKeys.playDefaultPort := 10003,
     resolvers := Seq(
       Resolver.bintrayRepo("hmrc", "releases"),
       Resolver.bintrayRepo("hmrc", "release-candidates"),

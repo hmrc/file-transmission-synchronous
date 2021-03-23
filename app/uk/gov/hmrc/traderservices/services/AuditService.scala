@@ -30,12 +30,6 @@ import scala.util.Try
 
 import play.api.libs.json._
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
-import uk.gov.hmrc.traderservices.models.UploadedFile
-import uk.gov.hmrc.traderservices.models.FileTransferResult
-import uk.gov.hmrc.traderservices.models.FileTransferAudit
-import java.time.LocalDate
-import java.time.LocalTime
-import play.api.Logger
 
 object TraderServicesAuditEvent extends Enumeration {
   type TraderServicesAuditEvent = Value
