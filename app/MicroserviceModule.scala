@@ -30,6 +30,7 @@ import uk.gov.hmrc.http.hooks.HttpHook
 import com.typesafe.config.Config
 import uk.gov.hmrc.play.http.ws.WSHttp
 
+// $COVERAGE-OFF$
 class MicroserviceModule(val environment: Environment, val configuration: Configuration) extends AbstractModule {
 
   override def configure(): Unit = {

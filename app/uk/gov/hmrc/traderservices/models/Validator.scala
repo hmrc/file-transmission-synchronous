@@ -19,7 +19,7 @@ import cats.Semigroup
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 
-//$COVERAGE-OFF
+// $COVERAGE-OFF$
 object Validator {
 
   import Implicits._
