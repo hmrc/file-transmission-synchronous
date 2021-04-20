@@ -117,7 +117,7 @@ object FileTransferRequest {
 
   final val fileSizeValidator: Validate[Int] =
     check(
-      fileSize => fileSize > 1 && fileSize <= (6 * 1024 * 1024),
+      fileSize => fileSize > 0 && fileSize <= (6 * 1024 * 1024),
       s"Invalid fileSize, must be greater than zero and less or equal to 6 MB"
     )
 
