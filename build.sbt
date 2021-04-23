@@ -16,16 +16,16 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "4.1.0",
-  "uk.gov.hmrc"   %% "auth-client"               % "4.0.0-play-27",
+  "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "4.2.0",
+  "uk.gov.hmrc"   %% "auth-client"               % "5.2.0-play-27",
   "com.kenshoo"   %% "metrics-play"              % "2.7.3_0.8.2",
-  "org.typelevel" %% "cats-core"                 % "2.3.1",
+  "org.typelevel" %% "cats-core"                 % "2.6.0",
   ws
 )
 
 def testDeps(scope: String) =
   Seq(
-    "org.scalatest"          %% "scalatest"          % "3.2.6"  % scope,
+    "org.scalatest"          %% "scalatest"          % "3.2.8"  % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3"  % scope,
     "com.github.tomakehurst"  % "wiremock-jre8"      % "2.27.2" % scope,
     "com.vladsch.flexmark"    % "flexmark-all"       % "0.36.8" % scope
@@ -37,12 +37,6 @@ lazy val root = (project in file("."))
     organization := "uk.gov.hmrc",
     scalaVersion := "2.12.12",
     PlayKeys.playDefaultPort := 10003,
-    resolvers := Seq(
-      Resolver.bintrayRepo("hmrc", "releases"),
-      Resolver.bintrayRepo("hmrc", "release-candidates"),
-      Resolver.typesafeRepo("releases"),
-      Resolver.jcenterRepo
-    ),
     libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
     publishingSettings,
     scoverageSettings,
