@@ -16,8 +16,8 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "5.1.0",
-  "uk.gov.hmrc"   %% "auth-client"               % "5.6.0-play-27",
+  "uk.gov.hmrc"   %% "bootstrap-backend-play-28" % "5.1.0",
+  "uk.gov.hmrc"   %% "auth-client"               % "5.6.0-play-28",
   "com.kenshoo"   %% "metrics-play"              % "2.7.3_0.8.2",
   "org.typelevel" %% "cats-core"                 % "2.6.0"
 )
@@ -25,7 +25,7 @@ lazy val compileDeps = Seq(
 def testDeps(scope: String) =
   Seq(
     "org.scalatest"          %% "scalatest"          % "3.2.8"  % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3"  % scope,
+    "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % scope,
     "com.github.tomakehurst"  % "wiremock-jre8"      % "2.27.2" % scope,
     "com.vladsch.flexmark"    % "flexmark-all"       % "0.36.8" % scope
   )
