@@ -51,7 +51,9 @@ trait FileTransferStubs {
          |"Content" : "$base64Content"
          |}""".stripMargin,
       checksum,
-      xmlMetadataHeader
+      xmlMetadataHeader,
+      "Route1",
+      caseReferenceNumber
     )
 
     downloadUrl
@@ -79,7 +81,9 @@ trait FileTransferStubs {
          |"Content" : "$base64Content"
          |}""".stripMargin,
       checksum,
-      xmlMetadataHeader
+      xmlMetadataHeader,
+      applicationName,
+      caseReferenceNumber
     )
 
     downloadUrl
@@ -108,7 +112,9 @@ trait FileTransferStubs {
          |"Content" : "$base64Content"
          |}""".stripMargin,
       checksum,
-      xmlMetadataHeader
+      xmlMetadataHeader,
+      applicationName,
+      caseReferenceNumber
     )
 
     downloadUrl
@@ -137,7 +143,9 @@ trait FileTransferStubs {
          |"Content" : "$base64Content"
          |}""".stripMargin,
       checksum,
-      xmlMetadataHeader
+      xmlMetadataHeader,
+      applicationName,
+      caseReferenceNumber
     )
 
     downloadUrl
@@ -167,7 +175,9 @@ trait FileTransferStubs {
          |"Content" : "$base64Content"
          |}""".stripMargin,
       checksum,
-      xmlMetadataHeader
+      xmlMetadataHeader,
+      applicationName,
+      caseReferenceNumber
     )
 
     downloadUrl
@@ -179,7 +189,14 @@ trait FileTransferStubs {
   def verifyFileTransferDidNotHappen() =
     verify(0, postRequestedFor(urlEqualTo(FILE_TRANSFER_URL)))
 
-  private def stubForFileUpload(status: Int, payload: String, checksum: String, xmlMetadataHeader: String): Unit =
+  private def stubForFileUpload(
+    status: Int,
+    payload: String,
+    checksum: String,
+    xmlMetadataHeader: String,
+    applicationName: String,
+    caseReferenceNumber: String
+  ): Unit =
     stubFor(
       post(urlEqualTo(FILE_TRANSFER_URL))
         .withHeader("x-correlation-id", matching("[A-Za-z0-9-]{36}"))
@@ -196,6 +213,8 @@ trait FileTransferStubs {
           if (xmlMetadataHeader.isEmpty) containing("xml")
           else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
         )
+        .withHeader("referer", equalTo(applicationName))
+        .withHeader("x-client-id", equalTo(caseReferenceNumber))
         .withRequestBody(equalToJson(payload, true, true))
         .willReturn(
           aResponse()

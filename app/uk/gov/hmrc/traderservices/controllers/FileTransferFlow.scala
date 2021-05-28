@@ -96,7 +96,7 @@ trait FileTransferFlow {
         case (Success(fileDownloadResponse), (fileTransferRequest, _)) =>
           if (fileDownloadResponse.status.isSuccess()) {
             Logger(getClass).info(
-              s"Starting transfer with [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+              s"Starting transfer with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
                 .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}], expected SHA-256 checksum is ${fileTransferRequest.checksum}, received http response status is ${fileDownloadResponse.status} ..."
             )
             val jsonHeader = s"""{
@@ -144,7 +144,9 @@ trait FileTransferFlow {
                 RawHeader("checksumAlgorithm", "SHA-256"),
                 RawHeader("checksum", fileTransferRequest.checksum),
                 Date(DateTime.now),
-                RawHeader("x-metadata", xmlMetadata)
+                RawHeader("x-metadata", xmlMetadata),
+                RawHeader("referer", fileTransferRequest.applicationName),
+                RawHeader("x-client-id", fileTransferRequest.caseReferenceNumber)
               ),
               entity = HttpEntity.apply(ContentTypes.`application/json`, fileEncodeAndWrapSource)
             )
@@ -157,7 +159,7 @@ trait FileTransferFlow {
             source
           } else
             Source
-              .fromFuture(
+              .future(
                 fileDownloadResponse.entity
                   .toStrict(FiniteDuration(10000, "ms"))
                   .map(_.data.take(1024).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
@@ -165,6 +167,7 @@ trait FileTransferFlow {
               .flatMapConcat(responseBody =>
                 Source.failed(
                   FileDownloadFailure(
+                    fileTransferRequest.applicationName,
                     fileTransferRequest.conversationId,
                     fileTransferRequest.correlationId.getOrElse(""),
                     fileTransferRequest.upscanReference,
@@ -179,6 +182,7 @@ trait FileTransferFlow {
           Source
             .failed(
               FileDownloadException(
+                fileTransferRequest.applicationName,
                 fileTransferRequest.conversationId,
                 fileTransferRequest.correlationId
                   .getOrElse(""),
@@ -199,7 +203,7 @@ trait FileTransferFlow {
           if (fileUploadResponse.status.isSuccess()) {
             fileUploadResponse.discardEntityBytes()
             Logger(getClass).info(
-              s"Transfer [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+              s"Transfer [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
                 .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] succeeded."
             )
           } else
@@ -207,7 +211,7 @@ trait FileTransferFlow {
               .toStrict(FiniteDuration(10000, "ms"))
               .foreach { entity =>
                 Logger(getClass).error(
-                  s"Upload request with [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+                  s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
                     .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed with status [${fileUploadResponse.status
                     .intValue()}], reason [${fileUploadResponse.status.reason}] and response body [${entity.data
                     .take(1024)
@@ -236,7 +240,7 @@ trait FileTransferFlow {
           uploadError.printStackTrace(new PrintWriter(writer))
           val stackTrace = writer.getBuffer().toString()
           Logger(getClass).error(
-            s"Upload request with [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+            s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
               .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed because of [${uploadError.getClass
               .getName()}: ${uploadError.getMessage()}].\n$stackTrace"
           )
@@ -254,14 +258,17 @@ trait FileTransferFlow {
 }
 
 final case class FileDownloadException(
+  applicationName: String,
   conversationId: String,
   correlationId: String,
   upscanReference: String,
   exception: Throwable
 ) extends Exception(
-      s"Download request with [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed because of [${exception.getClass.getName}: ${exception.getMessage()}]."
+      s"Download request with [applicationName=$applicationName] and [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed because of [${exception.getClass.getName}: ${exception
+        .getMessage()}]."
     )
 final case class FileDownloadFailure(
+  applicationName: String,
   conversationId: String,
   correlationId: String,
   upscanReference: String,
@@ -269,5 +276,5 @@ final case class FileDownloadFailure(
   reason: String,
   responseBody: String
 ) extends Exception(
-      s"Download request with [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed with status [$status $reason] and response body [$responseBody]."
+      s"Download request with [applicationName=$applicationName] and [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed with status [$status $reason] and response body [$responseBody]."
     )
