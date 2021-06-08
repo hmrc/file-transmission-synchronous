@@ -145,8 +145,7 @@ trait FileTransferFlow {
                 RawHeader("checksum", fileTransferRequest.checksum),
                 Date(DateTime.now),
                 RawHeader("x-metadata", xmlMetadata),
-                RawHeader("referer", fileTransferRequest.applicationName),
-                RawHeader("x-client-id", fileTransferRequest.caseReferenceNumber)
+                RawHeader("referer", fileTransferRequest.applicationName)
               ),
               entity = HttpEntity.apply(ContentTypes.`application/json`, fileEncodeAndWrapSource)
             )
