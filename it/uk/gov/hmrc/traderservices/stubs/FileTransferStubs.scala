@@ -214,7 +214,6 @@ trait FileTransferStubs {
           else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
         )
         .withHeader("referer", equalTo(applicationName))
-        .withHeader("x-client-id", equalTo(caseReferenceNumber))
         .withRequestBody(equalToJson(payload, true, true))
         .willReturn(
           aResponse()
