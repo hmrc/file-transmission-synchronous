@@ -82,7 +82,7 @@ object FileTransferRequest {
   final val downloadUrlValidator: Validate[String] =
     check(
       uri => Try(HttpRequest.verifyUri(Uri(uri))).isSuccess,
-      s"Invalid downloadUrl, must be valid URI"
+      s"Invalid downloadUrl, must be a valid URI"
     )
 
   final val checksumValidator: Validate[String] =

@@ -98,7 +98,22 @@ object Validator {
         )
 
   def checkEach[T, E](elements: T => Seq[E], validator: Validate[E]): Validate[T] =
-    (entity: T) => elements(entity).map(validator).reduce(_.combine(_))
+    (entity: T) => {
+      val es = elements(entity)
+      if (es.nonEmpty)
+        es.map(validator)
+          .reduce(_.combine(_))
+      else Valid(())
+    }
+
+  def checkEachIfNonEmpty[T, E](elements: T => Seq[E], validator: Validate[E]): Validate[T] =
+    (entity: T) => {
+      val es = elements(entity)
+      if (es.nonEmpty)
+        es.map(validator)
+          .reduce(_.combine(_))
+      else Invalid(List("Sequence must not be empty"))
+    }
 
   def checkEachIfSome[T, E](
     extract: T => Option[Seq[E]],
