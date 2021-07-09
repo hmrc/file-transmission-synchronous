@@ -24,6 +24,6 @@ final case class MultiFileTransferResult(
 )
 
 object MultiFileTransferResult {
-  implicit val formats: Format[FileTransferResult] =
-    Json.format[FileTransferResult]
+  implicit val formats: Format[MultiFileTransferResult] =
+    Json.format[MultiFileTransferResult]
 }

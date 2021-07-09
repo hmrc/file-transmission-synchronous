@@ -9,6 +9,7 @@ import uk.gov.hmrc.traderservices.support.AppBaseISpec
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 class AuthActionsISpec extends AppBaseISpec {
 
@@ -27,6 +28,7 @@ class AuthActionsISpec extends AppBaseISpec {
       override val eisFileTransferHost: String = "???"
       override val eisFileTransferPort: Int = -1
       override val eisFileTransferApiPath: String = "???"
+      override val httpResponseProcessingTimeout: FiniteDuration = FiniteDuration(15, "s")
     }
 
     implicit val hc = HeaderCarrier()

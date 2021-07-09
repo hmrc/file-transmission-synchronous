@@ -31,4 +31,6 @@ final case class FileTransferResult(
 object FileTransferResult {
   implicit val formats: Format[FileTransferResult] =
     Json.format[FileTransferResult]
+
+  val empty = FileTransferResult("", false, 0, LocalDateTime.now())
 }

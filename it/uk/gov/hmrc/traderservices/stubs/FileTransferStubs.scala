@@ -15,6 +15,7 @@ import java.net.URLEncoder
 import java.io.InputStream
 import java.io.ByteArrayInputStream
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
+import com.github.tomakehurst.wiremock.http.HttpStatus
 
 trait FileTransferStubs {
   me: WireMockSupport =>
@@ -189,7 +190,7 @@ trait FileTransferStubs {
   def verifyFileTransferDidNotHappen() =
     verify(0, postRequestedFor(urlEqualTo(FILE_TRANSFER_URL)))
 
-  private def stubForFileUpload(
+  def stubForFileUpload(
     status: Int,
     payload: String,
     checksum: String,
@@ -219,10 +220,11 @@ trait FileTransferStubs {
           aResponse()
             .withStatus(status)
             .withHeader("Content-Type", "application/json")
+            .withBody(if (HttpStatus.isSuccess(status)) "" else s"Error $status")
         )
     )
 
-  private def stubForFileDownload(status: Int, bytes: Array[Byte], fileName: String): String = {
+  def stubForFileDownload(status: Int, bytes: Array[Byte], fileName: String): String = {
 
     val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}"
 
@@ -239,7 +241,7 @@ trait FileTransferStubs {
     url
   }
 
-  private def stubForFileDownload(status: Int, fault: Fault): String = {
+  def stubForFileDownload(status: Int, fault: Fault): String = {
     val url = s"/bucket/${UUID.randomUUID().toString()}"
 
     stubFor(

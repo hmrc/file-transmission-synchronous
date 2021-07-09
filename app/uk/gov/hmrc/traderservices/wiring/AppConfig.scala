@@ -19,6 +19,8 @@ package uk.gov.hmrc.traderservices.wiring
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration
 
 @ImplementedBy(classOf[AppConfigImpl])
 trait AppConfig {
@@ -42,6 +44,8 @@ trait AppConfig {
   val eisAuthorizationToken: String
 
   val eisEnvironment: String
+
+  val httpResponseProcessingTimeout: FiniteDuration
 }
 
 class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
@@ -93,5 +97,8 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
         "Missing [microservice.services.eis.cpr.filetransfer.caseevidence.environment] configuration property"
       )
     )
+
+  override val httpResponseProcessingTimeout: FiniteDuration =
+    FiniteDuration(config.getInt("http-response-processing-timeout-seconds"), "s")
 
 }

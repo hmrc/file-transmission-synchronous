@@ -28,7 +28,12 @@ case class MultiFileTransferRequest(
   applicationName: String,
   files: Seq[FileTransferData],
   callbackUrl: Option[String] = None
-)
+) {
+
+  def shouldCallbackAsync: Boolean =
+    callbackUrl.isDefined
+
+}
 
 case class FileTransferData(
   upscanReference: String,

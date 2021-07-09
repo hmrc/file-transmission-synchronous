@@ -16,41 +16,41 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.ContentTypes
-import akka.http.scaladsl.model.HttpEntity
-import akka.stream.scaladsl.Keep
-import akka.stream.scaladsl.Flow
-import scala.util.Try
 import akka.NotUsed
-import akka.http.scaladsl.model.HttpResponse
-import scala.util.Success
-import scala.util.Failure
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.headers.Date
-import akka.http.scaladsl.model.DateTime
-import uk.gov.hmrc.traderservices.models._
-import akka.http.scaladsl.Http
 import akka.actor.ActorSystem
-import uk.gov.hmrc.traderservices.wiring.AppConfig
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ContentTypes
+import akka.http.scaladsl.model.DateTime
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.HttpMethods
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.headers.Date
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.Materializer
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.Keep
 import akka.stream.scaladsl.Source
-import scala.concurrent.Future
-import play.api.mvc.Result
-import play.api.mvc.Results._
 import akka.util.ByteString
 import play.api.Logger
-import akka.stream.Materializer
-import scala.concurrent.duration.FiniteDuration
-import java.nio.charset.StandardCharsets
-import java.io.StringWriter
+import uk.gov.hmrc.traderservices.models._
+import uk.gov.hmrc.traderservices.wiring.AppConfig
+
 import java.io.PrintWriter
-import play.api.libs.json.Json
-import uk.gov.hmrc.traderservices.connectors.ApiError
+import java.io.StringWriter
+import java.nio.charset.StandardCharsets
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+import scala.concurrent.Await
 
 trait FileTransferFlow {
 
   val appConfig: AppConfig
+  val httpResponseProcessingTimeout: FiniteDuration
+
   implicit val materializer: Materializer
   implicit val actorSystem: ActorSystem
 
@@ -93,7 +93,7 @@ trait FileTransferFlow {
       }
       .via(connectionPool)
       .flatMapConcat {
-        case (Success(fileDownloadResponse), (fileTransferRequest, _)) =>
+        case (Success(fileDownloadResponse), (fileTransferRequest, fileDownloadRequest)) =>
           if (fileDownloadResponse.status.isSuccess()) {
             Logger(getClass).info(
               s"Starting transfer with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
@@ -160,79 +160,86 @@ trait FileTransferFlow {
             Source
               .future(
                 fileDownloadResponse.entity
-                  .toStrict(FiniteDuration(10000, "ms"))
-                  .map(_.data.take(1024).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
+                  .toStrict(httpResponseProcessingTimeout)
+                  .map(_.data.take(10240).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
               )
               .flatMapConcat(responseBody =>
-                Source.failed(
-                  FileDownloadFailure(
-                    fileTransferRequest.applicationName,
-                    fileTransferRequest.conversationId,
-                    fileTransferRequest.correlationId.getOrElse(""),
-                    fileTransferRequest.upscanReference,
-                    fileDownloadResponse.status.intValue(),
-                    fileDownloadResponse.status.reason(),
-                    responseBody
+                Source.single(
+                  (
+                    Failure(
+                      FileDownloadFailure(
+                        fileTransferRequest.applicationName,
+                        fileTransferRequest.conversationId,
+                        fileTransferRequest.correlationId.getOrElse(""),
+                        fileTransferRequest.upscanReference,
+                        fileDownloadResponse.status.intValue(),
+                        fileDownloadResponse.status.reason(),
+                        responseBody
+                      )
+                    ),
+                    (fileTransferRequest, fileDownloadRequest)
                   )
                 )
               )
 
-        case (Failure(fileDownloadError), (fileTransferRequest, _)) =>
-          Source
-            .failed(
-              FileDownloadException(
-                fileTransferRequest.applicationName,
-                fileTransferRequest.conversationId,
-                fileTransferRequest.correlationId
-                  .getOrElse(""),
-                fileTransferRequest.upscanReference,
-                fileDownloadError
-              )
+        case (Failure(fileDownloadError), (fileTransferRequest, fileDownloadRequest)) =>
+          Source.single(
+            (
+              Failure(
+                FileDownloadException(
+                  fileTransferRequest.applicationName,
+                  fileTransferRequest.conversationId,
+                  fileTransferRequest.correlationId
+                    .getOrElse(""),
+                  fileTransferRequest.upscanReference,
+                  fileDownloadError
+                )
+              ),
+              (fileTransferRequest, fileDownloadRequest)
             )
+          )
       }
 
-  final def executeSingleFileTransfer(
-    fileTransferRequest: FileTransferRequest
-  ): Future[Result] =
+  final def executeSingleFileTransfer[R](
+    fileTransferRequest: FileTransferRequest,
+    onComplete: (Int, Option[String], FileTransferRequest) => R,
+    onFailure: (Throwable, FileTransferRequest) => R,
+    zero: R
+  ): Future[R] =
     Source
       .single(fileTransferRequest)
       .via(fileTransferFlow)
-      .runFold[Result](Ok) {
+      .runFold[R](zero) {
         case (_, (Success(fileUploadResponse), (fileTransferRequest, eisUploadRequest))) =>
-          if (fileUploadResponse.status.isSuccess()) {
-            fileUploadResponse.discardEntityBytes()
-            Logger(getClass).info(
-              s"Transfer [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-                .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] succeeded."
-            )
-          } else
+          val httpBody: Option[String] = Await.result(
             fileUploadResponse.entity
-              .toStrict(FiniteDuration(10000, "ms"))
-              .foreach { entity =>
-                Logger(getClass).error(
-                  s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-                    .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed with status [${fileUploadResponse.status
-                    .intValue()}], reason [${fileUploadResponse.status.reason}] and response body [${entity.data
-                    .take(1024)
-                    .decodeString(StandardCharsets.UTF_8)}]."
-                )
-              }(actorSystem.dispatcher)
+              .toStrict(httpResponseProcessingTimeout)
+              .map { entity =>
+                val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
+                if (fileUploadResponse.status.isSuccess())
+                  Logger(getClass).info(
+                    s"Transfer [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+                      .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] succeeded."
+                  )
+                else
+                  Logger(getClass).error(
+                    s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
+                      .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed with status [${fileUploadResponse.status
+                      .intValue()}], reason [${fileUploadResponse.status.reason}] and response body [$body]."
+                  )
+                if (body.isEmpty) None else Some(body)
+              }(actorSystem.dispatcher),
+            httpResponseProcessingTimeout
+          )
+          onComplete(fileUploadResponse.status.intValue(), httpBody, fileTransferRequest)
 
-          Status(fileUploadResponse.status.intValue())
-
-        case (_, (Failure(error: FileDownloadException), _)) =>
+        case (_, (Failure(error: FileDownloadException), (fileTransferRequest, eisUploadRequest))) =>
           Logger(getClass).error(error.getMessage(), error.exception)
-          InternalServerError(
-            Json
-              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
-          )
+          onFailure(error, fileTransferRequest)
 
-        case (_, (Failure(error: FileDownloadFailure), _)) =>
+        case (_, (Failure(error: FileDownloadFailure), (fileTransferRequest, eisUploadRequest))) =>
           Logger(getClass).error(error.getMessage())
-          InternalServerError(
-            Json
-              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
-          )
+          onFailure(error, fileTransferRequest)
 
         case (_, (Failure(uploadError), (fileTransferRequest, eisUploadRequest))) =>
           val writer = new StringWriter()
@@ -243,15 +250,7 @@ trait FileTransferFlow {
               .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed because of [${uploadError.getClass
               .getName()}: ${uploadError.getMessage()}].\n$stackTrace"
           )
-          InternalServerError(
-            Json
-              .toJson(
-                ApiError(
-                  "ERROR_FILE_UPLOAD",
-                  Option(s"${uploadError.getClass().getName()}: ${uploadError.getMessage()}")
-                )
-              )
-          )
+          onFailure(uploadError, fileTransferRequest)
       }
 
 }
