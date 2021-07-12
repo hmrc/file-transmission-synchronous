@@ -17,6 +17,7 @@ Method | Path | Description | Authorization
 Header | Description
 ---|---
 `x-correlation-id` | message correlation UUID (optional)
+`x-request-id` | request UUID (optional)
 
 Response status | Description
 ---|---
@@ -48,6 +49,70 @@ Example 400 error response payload
             "errorMessage" : "invalid case reference number"
         }
     }     
+
+Method | Path | Description | Authorization
+---|---|---|---
+`POST` | `/transfer-multiple-files` | transfer multiple files to the PEGA/Documentum system via EIS | any GovernmentGateway authorized user
+
+Header | Description
+---|---
+`x-request-id` | request UUID (optional)
+
+Response status | Description
+---|---
+201| when file transfer request completed (successes or failures)
+400| when payload invalid or has not passed the validation
+
+Example request payload:
+
+    {
+        "conversationId": "074c3823-c941-417e-a08b-e47b08e9a9b7",
+        "caseReferenceNumber": "Risk-123",
+        "applicationName": "Route1",
+        "files": [
+            {
+                "upscanReference": "XYZ0123456789",
+                "downloadUrl": "https://s3.amazonaws.com/bucket/9d9e1444-2555-422e-b251-44fd2e85530a",
+                "fileName": "test.jpeg",
+                "fileMimeType": "image/jpeg",
+                "fileSize": 12345,  // optional
+                "checksum": "a38d7dd155b1ec9703e5f19f839922ad5a1b0aa4f255c6c2b03e61535997d75"
+            },
+            ...
+        ],
+        "callbackUrl":"https://foo.protected.mdtp/transfer-multiple-files/callback/NONCE"  //optional
+    }
+
+Example 201 response payload:  
+
+    {
+        "results":[
+            {
+                "upscanReference":"XYZ0123456789",
+                "success":true,
+                "httpStatus":202,
+                "transferredAt":"2021-07-11T12:53:46"
+            },
+            {
+                "upscanReference":"XYZ0123456789",
+                "success":false,
+                "httpStatus":500,
+                "transferredAt":"2021-07-11T12:54:01",
+                "error":"some error description"
+            },
+            ...
+        ]
+    }
+
+Example 400 error response payload:
+
+    {
+        "correlationId" : "7fedc2d5-1bba-434b-87e6-4d4ec1757e31",
+        "error" : {
+            "errorCode" : "400",
+            "errorMessage" : "invalid case reference number"
+        }
+    }         
 
 
 ## Running the tests
