@@ -115,7 +115,7 @@ class FileTransferController @Inject() (
             .getOrElse(UUID.randomUUID().toString())
 
           val audit: FileTransferActor.AuditFunction =
-            (_: Seq[FileTransferResult]) => Future.successful(())
+            auditService.auditMultipleFilesTransmission(fileTransferRequest)
 
           // Single-use actor responsible for transferring files batch to PEGA
           val fileTransferActor: ActorRef =

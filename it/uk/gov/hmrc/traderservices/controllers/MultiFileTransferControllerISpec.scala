@@ -16,6 +16,7 @@ import akka.util.ByteString
 import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
 import uk.gov.hmrc.traderservices.models.FileTransferResult
 import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
+import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -160,6 +161,7 @@ class MultiFileTransferControllerISpec
         case FileTransferResult(_, true, 202, _, None) =>
       }
       verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
 
@@ -179,6 +181,7 @@ class MultiFileTransferControllerISpec
 
       result.status shouldBe 400
       verifyAuthorisationHasHappened()
+      verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
     }
   }
 
@@ -213,6 +216,7 @@ class MultiFileTransferControllerISpec
         case FileTransferResult(_, false, `status`, _, Some(error)) if error == s"Error $status" =>
       }
       verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
 
@@ -252,6 +256,7 @@ class MultiFileTransferControllerISpec
             if error == "This is an expected error requested by the test, no worries." =>
       }
       verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
 

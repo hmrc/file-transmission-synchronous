@@ -22,7 +22,7 @@ Header | Description
 Response status | Description
 ---|---
 202| when file transfer successful
-400| when payload invalid or has not passed the validation
+400| when payload malformed or has not passed the validation
 
 Example request payload:
 
@@ -60,8 +60,9 @@ Header | Description
 
 Response status | Description
 ---|---
-201| when file transfer request completed (successes or failures)
-400| when payload invalid or has not passed the validation
+201| when no callback URL provided and all files transfers has been completed (with successes or failures)
+202| when callbackUrl is defined and all files transfers has been completed (with successes or failures)
+400| when payload malformed or has not passed the validation
 
 Example request payload:
 
@@ -83,7 +84,7 @@ Example request payload:
         "callbackUrl":"https://foo.protected.mdtp/transfer-multiple-files/callback/NONCE"  //optional
     }
 
-Example 201 response payload:  
+Example 201 response payload (when no callback URL provided):  
 
     {
         "results":[
