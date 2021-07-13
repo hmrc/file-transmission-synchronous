@@ -19,14 +19,12 @@ package uk.gov.hmrc.traderservices.models
 import play.api.libs.json.Format
 import play.api.libs.json.Json
 
-final case class MultiFileTransferResult(
-  conversationId: String,
-  caseReferenceNumber: String,
-  applicationName: String,
-  results: Seq[FileTransferResult]
+final case class MultiFileTransferCallbackRequest(
+  callbackUrl: String,
+  result: MultiFileTransferResult
 )
 
-object MultiFileTransferResult {
-  implicit val formats: Format[MultiFileTransferResult] =
-    Json.format[MultiFileTransferResult]
+object MultiFileTransferCallbackRequest {
+  implicit val formats: Format[MultiFileTransferCallbackRequest] =
+    Json.format[MultiFileTransferCallbackRequest]
 }

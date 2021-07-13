@@ -100,6 +100,8 @@ class MultiFileTransferControllerISpec
 
         result.status shouldBe 400
         verifyAuthorisationHasHappened()
+        verifyFileUploadHaveNotHappen()
+        verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
       }
 
       "return 400 when malformed payload" in {
@@ -123,6 +125,8 @@ class MultiFileTransferControllerISpec
 
         result.status shouldBe 400
         verifyAuthorisationHasHappened()
+        verifyFileUploadHaveNotHappen()
+        verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
       }
     }
   }
@@ -161,6 +165,8 @@ class MultiFileTransferControllerISpec
         case FileTransferResult(_, true, 202, _, None) =>
       }
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
@@ -181,6 +187,8 @@ class MultiFileTransferControllerISpec
 
       result.status shouldBe 400
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHaveNotHappen(fileTransferRequest.files.head.fileName)
+      verifyFileUploadHaveNotHappen()
       verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
     }
   }
@@ -216,6 +224,8 @@ class MultiFileTransferControllerISpec
         case FileTransferResult(_, false, `status`, _, Some(error)) if error == s"Error $status" =>
       }
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileUploadHasHappened(if (status < 500) 1 else 3)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
@@ -256,6 +266,8 @@ class MultiFileTransferControllerISpec
             if error == "This is an expected error requested by the test, no worries." =>
       }
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
@@ -290,6 +302,8 @@ class MultiFileTransferControllerISpec
         case FileTransferResult(_, false, 0, _, Some(error)) =>
       }
       verifyAuthorisationHasHappened()
+      verifyFileUploadHaveNotHappen()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
 

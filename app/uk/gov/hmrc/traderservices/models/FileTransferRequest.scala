@@ -37,7 +37,8 @@ case class FileTransferRequest(
   // private field, this value will be overwritten
   // with x-request-id header value in the controller
   requestId: Option[String] = None,
-  fileSize: Option[Int] = None
+  fileSize: Option[Int] = None,
+  attempt: Option[Int] = None
 )
 
 object FileTransferRequest {

@@ -165,7 +165,7 @@ trait FileTransferStubs {
     xmlMetadataHeader: String
   ): String = {
     val downloadUrl =
-      stubForFileDownload(status, fault)
+      stubForFileDownload(status, fileName, fault)
 
     stubForFileUpload(
       202,
@@ -184,10 +184,10 @@ trait FileTransferStubs {
     downloadUrl
   }
 
-  def verifyFileTransferHasHappened(times: Int = 1) =
+  def verifyFileUploadHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlEqualTo(FILE_TRANSFER_URL)))
 
-  def verifyFileTransferDidNotHappen() =
+  def verifyFileUploadHaveNotHappen() =
     verify(0, postRequestedFor(urlEqualTo(FILE_TRANSFER_URL)))
 
   def stubForFileUpload(
@@ -224,6 +224,18 @@ trait FileTransferStubs {
         )
     )
 
+  def verifyFileDownloadHasHappened(fileName: String, times: Int) =
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+
+  def verifyFileDownloadHasHappened(fileName: String, fault: Fault, times: Int) =
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}")))
+
+  def verifyFileDownloadHaveNotHappen(fileName: String) =
+    verify(0, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+
+  def verifyFileDownloadHaveNotHappen() =
+    verify(0, getRequestedFor(urlPathMatching("\\/bucket\\/.*")))
+
   def stubForFileDownload(status: Int, bytes: Array[Byte], fileName: String): String = {
 
     val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}"
@@ -241,8 +253,8 @@ trait FileTransferStubs {
     url
   }
 
-  def stubForFileDownload(status: Int, fault: Fault): String = {
-    val url = s"/bucket/${UUID.randomUUID().toString()}"
+  def stubForFileDownload(status: Int, fileName: String, fault: Fault): String = {
+    val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}"
 
     stubFor(
       get(urlEqualTo(url))

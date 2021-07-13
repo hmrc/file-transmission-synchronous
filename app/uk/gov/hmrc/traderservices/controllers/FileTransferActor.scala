@@ -20,7 +20,6 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.pattern.pipe
 import play.api.Logger
-import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.traderservices.models._
 
 import java.time.LocalDateTime
@@ -28,35 +27,54 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * An Actor responsible for orchestrating transmission of files.
+  *
+  * @param conversationId unique conversation ID of this transfer batch
+  * @param caseReferenceNumber
+  * @param applicationName
+  * @param requestId
+  * @param transfer function to call to transfer a single file
+  * @param audit function to call to audit result of transmission
+  * @param callback function to call to after transmission
+  */
 class FileTransferActor(
   conversationId: String,
   caseReferenceNumber: String,
   applicationName: String,
   requestId: String,
   transfer: FileTransferActor.TransferFunction,
-  audit: FileTransferActor.AuditFunction
+  audit: FileTransferActor.AuditFunction,
+  callback: FileTransferActor.CallbackFunction,
+  unitInterval: FiniteDuration
 ) extends Actor {
 
   import FileTransferActor._
   import context.dispatcher
 
+  val MAX_RETRY_ATTEMPTS = 2
+
   var results: Seq[FileTransferResult] = Seq.empty
   var clientRef: ActorRef = ActorRef.noSender
   var startTimestamp: Long = 0
 
+  private def shouldRetry(httpStatus: Int): Boolean =
+    httpStatus >= 500
+
   override def receive: Receive = {
     case TransferMultipleFiles(files, batchSize) =>
-      startTimestamp = System.currentTimeMillis()
+      startTimestamp = System.nanoTime()
       clientRef = sender()
       files
         .map {
           case (file, index) =>
-            TransferSingleFile(file, index, batchSize)
+            TransferSingleFile(file, index, batchSize, 0)
         }
         .foreach(request => self ! request)
-      self ! CheckComplete(batchSize)
+      context.system.scheduler
+        .scheduleOnce(unitInterval, self, CheckComplete(batchSize))
 
-    case TransferSingleFile(file, index, batchSize) =>
+    case thisMessage @ TransferSingleFile(file, index, batchSize, attempt) =>
       transfer(
         FileTransferRequest(
           conversationId,
@@ -71,53 +89,72 @@ class FileTransferActor(
           index + 1,
           Some(UUID.randomUUID().toString()),
           Some(requestId),
-          file.fileSize
+          file.fileSize,
+          Some(attempt)
         ),
         (httpStatus: Int, httpBody: Option[String], fileTransferRequest: FileTransferRequest) =>
-          FileTransferResult(
-            fileTransferRequest.upscanReference,
-            isSuccess(httpStatus),
-            httpStatus,
-            LocalDateTime.now,
-            if (isSuccess(httpStatus)) None else httpBody
-          ),
+          if (shouldRetry(httpStatus) && attempt < MAX_RETRY_ATTEMPTS)
+            Left(thisMessage.copy(attempt = attempt + 1))
+          else
+            Right(
+              FileTransferResult(
+                fileTransferRequest.upscanReference,
+                isSuccess(httpStatus),
+                httpStatus,
+                LocalDateTime.now,
+                if (isSuccess(httpStatus)) None else httpBody
+              )
+            ),
         (error: Throwable, fileTransferRequest: FileTransferRequest) =>
           error match {
             case fileDownloadFailure: FileDownloadFailure =>
-              FileTransferResult(
-                fileTransferRequest.upscanReference,
-                false,
-                fileDownloadFailure.status,
-                LocalDateTime.now,
-                Option(fileDownloadFailure.responseBody)
-              )
+              if (shouldRetry(fileDownloadFailure.status) && attempt < MAX_RETRY_ATTEMPTS)
+                Left(thisMessage.copy(attempt = attempt + 1))
+              else
+                Right(
+                  FileTransferResult(
+                    fileTransferRequest.upscanReference,
+                    false,
+                    fileDownloadFailure.status,
+                    LocalDateTime.now,
+                    Option(fileDownloadFailure.responseBody)
+                  )
+                )
 
             case fileDownloadException: FileDownloadException =>
-              FileTransferResult(
-                fileTransferRequest.upscanReference,
-                false,
-                0,
-                LocalDateTime.now,
-                Option(
-                  s"${fileDownloadException.exception.getClass().getName()}: ${fileDownloadException.exception.getMessage()}"
+              Right(
+                FileTransferResult(
+                  fileTransferRequest.upscanReference,
+                  false,
+                  0,
+                  LocalDateTime.now,
+                  Option(
+                    s"${fileDownloadException.exception.getClass().getName()}: ${fileDownloadException.exception.getMessage()}"
+                  )
                 )
               )
 
             case _ =>
-              FileTransferResult(
-                fileTransferRequest.upscanReference,
-                false,
-                0,
-                LocalDateTime.now,
-                Option(s"${error.getClass().getName()}: ${error.getMessage()}")
+              Right(
+                FileTransferResult(
+                  fileTransferRequest.upscanReference,
+                  false,
+                  0,
+                  LocalDateTime.now,
+                  Option(s"${error.getClass().getName()}: ${error.getMessage()}")
+                )
               )
           },
-        FileTransferResult.empty
+        Right(FileTransferResult.empty)
       )
-        .pipeTo(sender())
+        .pipeTo(self)
 
-    case result: FileTransferResult =>
+    case Right(result: FileTransferResult) =>
       results = results :+ result
+
+    case Left(retryMessage: TransferSingleFile) =>
+      context.system.scheduler
+        .scheduleOnce(unitInterval * retryMessage.attempt * 10, self, retryMessage)
 
     case akka.actor.Status.Failure(error) =>
       Logger(getClass).error(error.toString())
@@ -131,17 +168,41 @@ class FileTransferActor(
 
     case CheckComplete(batchSize) =>
       if (results.size == batchSize || System.currentTimeMillis() - startTimestamp > 3600000 /*hour*/ ) {
-        clientRef ! results
+        val response = MultiFileTransferResult(
+          conversationId,
+          caseReferenceNumber,
+          applicationName,
+          results
+        )
+        clientRef ! response
         audit(results)
-        context.stop(self)
+        self ! Callback(response, 0)
         Logger(getClass).info(
-          s"Transferred ${results.size} out of $batchSize files in ${(System
-            .currentTimeMillis() - startTimestamp) / 1000} seconds. It was ${results
+          s"Transferred ${results.size} out of $batchSize files in ${(System.nanoTime - startTimestamp) / 1000000} milliseconds. It was ${results
             .count(_.success)} successes and ${results.count(f => !f.success)} failures."
         )
       } else
         context.system.scheduler
-          .scheduleOnce(FiniteDuration(500, "ms"), self, CheckComplete(batchSize))
+          .scheduleOnce(unitInterval, self, CheckComplete(batchSize))
+
+    case Callback(response, attempt) =>
+      callback(response)
+        .map {
+          case Right(()) =>
+            Completed
+
+          case Left((error, retry)) =>
+            if (retry && attempt < MAX_RETRY_ATTEMPTS)
+              context.system.scheduler
+                .scheduleOnce(unitInterval * 10, self, Callback(response, attempt + 1))
+            else
+              Completed
+        }
+        .pipeTo(self)
+
+    case Completed =>
+      context.stop(self)
+
   }
 
   final def isSuccess(status: Int): Boolean =
@@ -150,17 +211,24 @@ class FileTransferActor(
 
 object FileTransferActor {
 
+  type TransferResult = Either[TransferSingleFile, FileTransferResult]
+
   type TransferFunction = (
     FileTransferRequest,
-    (Int, Option[String], FileTransferRequest) => FileTransferResult,
-    (Throwable, FileTransferRequest) => FileTransferResult,
-    FileTransferResult
-  ) => Future[FileTransferResult]
+    (Int, Option[String], FileTransferRequest) => TransferResult,
+    (Throwable, FileTransferRequest) => TransferResult,
+    TransferResult
+  ) => Future[TransferResult]
 
   type AuditFunction =
     Seq[FileTransferResult] => Future[Unit]
 
+  type CallbackFunction =
+    MultiFileTransferResult => Future[Either[(String, Boolean), Unit]]
+
   case class TransferMultipleFiles(files: Seq[(FileTransferData, Int)], batchSize: Int)
-  case class TransferSingleFile(file: FileTransferData, index: Int, batchSize: Int)
+  case class TransferSingleFile(file: FileTransferData, index: Int, batchSize: Int, attempt: Int)
   case class CheckComplete(batchSize: Int)
+  case class Callback(response: MultiFileTransferResult, attempt: Int)
+  case object Completed
 }

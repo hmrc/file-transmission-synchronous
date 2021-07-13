@@ -163,6 +163,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       result.status shouldBe 202
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
     }
   }
 
@@ -182,6 +184,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       result.status shouldBe 400
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHaveNotHappen(fileTransferRequest.fileName)
+      verifyFileUploadHaveNotHappen()
     }
   }
 
@@ -209,6 +213,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       result.status shouldBe status
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
     }
   }
 
@@ -236,6 +242,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       result.status shouldBe 500
       verifyAuthorisationHasHappened()
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHaveNotHappen()
     }
   }
 
@@ -263,6 +271,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       result.status shouldBe 500
       verifyAuthorisationHasHappened()
+      verifyFileUploadHaveNotHappen()
     }
   }
 

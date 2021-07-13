@@ -34,7 +34,6 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.Props
-import akka.http.scaladsl.model.HttpResponse
 
 @Singleton
 class FileTransferController @Inject() (
@@ -48,10 +47,10 @@ class FileTransferController @Inject() (
   ec: ExecutionContext,
   val actorSystem: ActorSystem,
   val materializer: Materializer
-) extends BackendController(cc) with AuthActions with ControllerHelper with FileTransferFlow {
+) extends BackendController(cc) with AuthActions with ControllerHelper with FileTransferFlow
+    with MultiFileTransferCallbackFlow {
 
-  val httpResponseProcessingTimeout =
-    appConfig.httpResponseProcessingTimeout
+  val unitInterval = appConfig.unitInterval
 
   // POST /transfer-file
   final val transferFile: Action[String] =
@@ -101,8 +100,8 @@ class FileTransferController @Inject() (
         }
     }
 
-  final val multiFileTransferFunction: FileTransferActor.TransferFunction =
-    executeSingleFileTransfer[FileTransferResult]
+  final val transferFunction: FileTransferActor.TransferFunction =
+    executeSingleFileTransfer[FileTransferActor.TransferResult]
 
   // POST /transfer-multiple-files
   final val transferMultipleFiles: Action[String] =
@@ -114,8 +113,18 @@ class FileTransferController @Inject() (
             .map(_.takeRight(36))
             .getOrElse(UUID.randomUUID().toString())
 
-          val audit: FileTransferActor.AuditFunction =
+          val auditFunction: FileTransferActor.AuditFunction =
             auditService.auditMultipleFilesTransmission(fileTransferRequest)
+
+          val callbackFunction: FileTransferActor.CallbackFunction =
+            (result: MultiFileTransferResult) =>
+              fileTransferRequest.callbackUrl match {
+                case None =>
+                  Future.successful(Right(()))
+
+                case Some(callbackUrl) =>
+                  executeCallback(callbackUrl, result)
+              }
 
           // Single-use actor responsible for transferring files batch to PEGA
           val fileTransferActor: ActorRef =
@@ -126,8 +135,10 @@ class FileTransferController @Inject() (
                 fileTransferRequest.caseReferenceNumber,
                 fileTransferRequest.applicationName,
                 requestId,
-                multiFileTransferFunction,
-                audit
+                transferFunction,
+                auditFunction,
+                callbackFunction,
+                unitInterval
               )
             )
 
@@ -142,8 +153,8 @@ class FileTransferController @Inject() (
           } else
             fileTransferActor
               .ask(msg)(Timeout(5, java.util.concurrent.TimeUnit.MINUTES))
-              .mapTo[Seq[FileTransferResult]]
-              .map(results => Created(Json.toJson(MultiFileTransferResult(results))))
+              .mapTo[MultiFileTransferResult]
+              .map(result => Created(Json.toJson(result)))
         } {
           // when incoming request's payload validation fails
           case (errorCode, errorMessage) =>

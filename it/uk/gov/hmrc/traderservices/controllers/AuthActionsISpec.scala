@@ -28,7 +28,7 @@ class AuthActionsISpec extends AppBaseISpec {
       override val eisFileTransferHost: String = "???"
       override val eisFileTransferPort: Int = -1
       override val eisFileTransferApiPath: String = "???"
-      override val httpResponseProcessingTimeout: FiniteDuration = FiniteDuration(15, "s")
+      override val unitInterval: FiniteDuration = FiniteDuration(100, "ms")
     }
 
     implicit val hc = HeaderCarrier()

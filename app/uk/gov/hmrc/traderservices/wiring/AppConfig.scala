@@ -20,7 +20,6 @@ import com.google.inject.ImplementedBy
 import javax.inject.Inject
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.Duration
 
 @ImplementedBy(classOf[AppConfigImpl])
 trait AppConfig {
@@ -45,7 +44,7 @@ trait AppConfig {
 
   val eisEnvironment: String
 
-  val httpResponseProcessingTimeout: FiniteDuration
+  val unitInterval: FiniteDuration
 }
 
 class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
@@ -98,7 +97,7 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
       )
     )
 
-  override val httpResponseProcessingTimeout: FiniteDuration =
-    FiniteDuration(config.getInt("http-response-processing-timeout-seconds"), "s")
+  override val unitInterval: FiniteDuration =
+    FiniteDuration(config.getInt("unit-interval-milliseconds"), "ms")
 
 }
