@@ -1,25 +1,24 @@
 package uk.gov.hmrc.traderservices.controllers
 
-import java.time.LocalDateTime
+import akka.util.ByteString
+import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
-import play.api.libs.ws.WSClient
-import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.ServerBaseISpec
-import uk.gov.hmrc.traderservices.support.JsonMatchers
-import com.github.tomakehurst.wiremock.http.Fault
 import play.api.libs.ws.BodyWritable
-import java.nio.charset.StandardCharsets
 import play.api.libs.ws.InMemoryBody
-import akka.util.ByteString
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
+import play.api.libs.ws.WSClient
 import uk.gov.hmrc.traderservices.models.FileTransferResult
+import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
 import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
+import uk.gov.hmrc.traderservices.stubs._
+import uk.gov.hmrc.traderservices.support.JsonMatchers
+import uk.gov.hmrc.traderservices.support.ServerBaseISpec
+
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 import java.util.UUID
-import play.api.libs.json.JsObject
-import play.api.libs.json.JsArray
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -37,11 +36,6 @@ class MultiFileTransferControllerISpec
   val threeBytesArray = Array.fill[Byte](3)(255.toByte)
 
   "MultiFileTransferController" when {
-
-    "X" should {
-      testSingleFileTransferSuccessWithoutCallback("emptyArray", "Route1", Some(emptyArray))
-      testSingleFileTransferSuccessWithCallback("emptyArray", "Route1", Some(emptyArray))
-    }
 
     "POST /transfer-multiple-files" should {
       testFileTransferBadRequest(
@@ -91,6 +85,16 @@ class MultiFileTransferControllerISpec
       testSingleFileUploadFailureWithoutCallback("logback.xml", 409)
       testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 403)
 
+      testSingleFileUploadFailureWithCallback("emptyArray", 404, Some(emptyArray))
+      testSingleFileUploadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
+      testSingleFileUploadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
+      testSingleFileUploadFailureWithCallback("threeBytesArray", 404, Some(threeBytesArray))
+      testSingleFileUploadFailureWithCallback("prod.routes", 500)
+      testSingleFileUploadFailureWithCallback("app.routes", 404)
+      testSingleFileUploadFailureWithCallback("schema.json", 501)
+      testSingleFileUploadFailureWithCallback("logback.xml", 409)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 403)
+
       testSingleFileDownloadFailureWithoutCallback("emptyArray", 404, Some(emptyArray))
       testSingleFileDownloadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithoutCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -100,6 +104,16 @@ class MultiFileTransferControllerISpec
       testSingleFileDownloadFailureWithoutCallback("schema.json", 500)
       testSingleFileDownloadFailureWithoutCallback("logback.xml", 501)
       testSingleFileDownloadFailureWithoutCallback("test⫐1.jpeg", 404)
+
+      testSingleFileDownloadFailureWithCallback("emptyArray", 404, Some(emptyArray))
+      testSingleFileDownloadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
+      testSingleFileDownloadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
+      testSingleFileDownloadFailureWithCallback("threeBytesArray", 404, Some(threeBytesArray))
+      testSingleFileDownloadFailureWithCallback("prod.routes", 400)
+      testSingleFileDownloadFailureWithCallback("app.routes", 403)
+      testSingleFileDownloadFailureWithCallback("schema.json", 500)
+      testSingleFileDownloadFailureWithCallback("logback.xml", 501)
+      testSingleFileDownloadFailureWithCallback("test⫐1.jpeg", 404)
 
       testSingleFileDownloadFaultWithoutCallback("test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
       testSingleFileDownloadFaultWithoutCallback("test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
@@ -291,6 +305,43 @@ class MultiFileTransferControllerISpec
     }
   }
 
+  def testSingleFileUploadFailureWithCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+    s"return 202 when uploading $fileName fails because of $status (with callback)" in new MultiFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenMultiFileUploadFails(
+          status,
+          "Risk-123",
+          "Route1",
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader,
+          callbackUrl,
+          conversationId
+        )
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileUploadHasHappened(if (status < 500) 1 else 3)
+      verifyCallbackHasHappened(callbackUrl, 1)
+    }
+  }
+
   def testSingleFileDownloadFailureWithoutCallback(
     fileName: String,
     status: Int,
@@ -330,6 +381,48 @@ class MultiFileTransferControllerISpec
       verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+    }
+  }
+
+  def testSingleFileDownloadFailureWithCallback(
+    fileName: String,
+    status: Int,
+    bytesOpt: Option[Array[Byte]] = None
+  ) {
+    s"return 202 when downloading $fileName fails because of $status (with callback)" in new MultiFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenFileDownloadFails(
+          status,
+          "Risk-123",
+          "Route1",
+          fileName,
+          s"This is an expected error requested by the test, no worries.",
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader
+        )
+
+      givenCallbackForFailure(callbackUrl, conversationId, "Route1", status)
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileUploadHaveNotHappen()
+      verifyCallbackHasHappened(callbackUrl, 1)
     }
   }
 

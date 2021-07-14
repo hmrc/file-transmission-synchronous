@@ -80,25 +80,25 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         xmlMetadataHeader
       )
 
-    val expectedCallbackPayload: String =
-      Json.stringify {
-        val payload = Json
-          .toJson(
-            MultiFileTransferResult(
-              conversationId,
-              "Risk-123",
-              applicationName,
-              Seq(FileTransferResult("XYZ0123456789", true, 202, LocalDateTime.now, None))
-            )
-          )
-          .as[JsObject]
-        val results = payload("results").as[JsArray].value.map(x => x.as[JsObject].-("transferredAt"))
-        payload.+(("results", JsArray(results)))
-      }
+    val expectedResponse = MultiFileTransferResult(
+      conversationId,
+      "Risk-123",
+      applicationName,
+      Seq(FileTransferResult("XYZ0123456789", true, 202, LocalDateTime.now, None))
+    )
 
-    stubForCallback(callbackUrl, expectedCallbackPayload)
+    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
     downloadUrl
   }
+
+  def expectedCallbackPayload(expectedResponse: MultiFileTransferResult): String =
+    Json.stringify {
+      val payload = Json
+        .toJson(expectedResponse)
+        .as[JsObject]
+      val results = payload("results").as[JsArray].value.map(x => x.as[JsObject].-("transferredAt"))
+      payload.+(("results", JsArray(results)))
+    }
 
   def stubForCallback(callbackUrl: String, callbackPayload: String) =
     stubFor(
@@ -175,6 +175,48 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     )
 
     downloadUrl
+  }
+
+  def givenMultiFileUploadFails(
+    status: Int,
+    caseReferenceNumber: String,
+    applicationName: String,
+    fileName: String,
+    bytes: Array[Byte],
+    base64Content: String,
+    checksum: String,
+    fileSize: Int,
+    xmlMetadataHeader: String,
+    callbackUrl: String,
+    conversationId: String
+  ): String = {
+    val downloadUrl =
+      givenMultiFileUploadFails(
+        status,
+        caseReferenceNumber,
+        applicationName,
+        fileName,
+        bytes,
+        base64Content,
+        checksum,
+        fileSize,
+        xmlMetadataHeader
+      )
+
+    givenCallbackForFailure(callbackUrl, conversationId, applicationName, status)
+
+    downloadUrl
+  }
+
+  def givenCallbackForFailure(callbackUrl: String, conversationId: String, applicationName: String, status: Int) = {
+    val expectedResponse = MultiFileTransferResult(
+      conversationId,
+      "Risk-123",
+      applicationName,
+      Seq(FileTransferResult("XYZ0123456789", false, status, LocalDateTime.now, None))
+    )
+
+    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
   }
 
   def givenTraderMultiServicesFileTransferSucceeds(): Unit =
