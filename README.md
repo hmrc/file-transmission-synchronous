@@ -61,7 +61,7 @@ Header | Description
 Response status | Description
 ---|---
 201| when no callback URL provided and all files transfers has been completed (with successes or failures)
-202| when callbackUrl is defined and all files transfers has been completed (with successes or failures)
+202| when callback URL is defined and all files transfers has been completed (with successes or failures)
 400| when payload malformed or has not passed the validation
 
 Example request payload:
@@ -84,9 +84,12 @@ Example request payload:
         "callbackUrl":"https://foo.protected.mdtp/transfer-multiple-files/callback/NONCE"  //optional
     }
 
-Example 201 response payload (when no callback URL provided):  
+Example 201 response payload (when no callback URL) or callback payload (when callback URL):  
 
     {
+        "conversationId": "074c3823-c941-417e-a08b-e47b08e9a9b7",
+        "caseReferenceNumber": "Risk-123",
+        "applicationName": "Route1",
         "results":[
             {
                 "upscanReference":"XYZ0123456789",
