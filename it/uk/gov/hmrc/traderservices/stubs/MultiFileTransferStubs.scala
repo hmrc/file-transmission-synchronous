@@ -8,6 +8,12 @@ import uk.gov.hmrc.traderservices.support.WireMockSupport
 
 import java.io.ByteArrayInputStream
 import java.{util => ju}
+import play.api.libs.json.Json
+import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
+import uk.gov.hmrc.traderservices.models.FileTransferResult
+import java.time.LocalDateTime
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsArray
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -49,6 +55,66 @@ trait MultiFileTransferStubs extends FileTransferStubs {
 
     downloadUrl
   }
+
+  def givenMultiFileTransferSucceeds(
+    caseReferenceNumber: String,
+    applicationName: String,
+    fileName: String,
+    bytes: Array[Byte],
+    base64Content: String,
+    checksum: String,
+    fileSize: Int,
+    xmlMetadataHeader: String,
+    callbackUrl: String,
+    conversationId: String
+  ): String = {
+    val downloadUrl =
+      givenMultiFileTransferSucceeds(
+        caseReferenceNumber,
+        applicationName,
+        fileName,
+        bytes,
+        base64Content,
+        checksum,
+        fileSize,
+        xmlMetadataHeader
+      )
+
+    val expectedCallbackPayload: String =
+      Json.stringify {
+        val payload = Json
+          .toJson(
+            MultiFileTransferResult(
+              conversationId,
+              "Risk-123",
+              applicationName,
+              Seq(FileTransferResult("XYZ0123456789", true, 202, LocalDateTime.now, None))
+            )
+          )
+          .as[JsObject]
+        val results = payload("results").as[JsArray].value.map(x => x.as[JsObject].-("transferredAt"))
+        payload.+(("results", JsArray(results)))
+      }
+
+    stubForCallback(callbackUrl, expectedCallbackPayload)
+    downloadUrl
+  }
+
+  def stubForCallback(callbackUrl: String, callbackPayload: String) =
+    stubFor(
+      post(urlEqualTo(callbackUrl))
+        .withRequestBody(equalToJson(callbackPayload, true, true))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+        )
+    )
+
+  def verifyCallbackHasHappened(callbackUrl: String, times: Int) =
+    verify(
+      times,
+      postRequestedFor(urlEqualTo(callbackUrl))
+    )
 
   def givenMultiFileTransferSucceeds(
     caseReferenceNumber: String,
@@ -172,7 +238,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |}]
          |${callbackUrlOpt
         .map(callbackUrl => s"""
-         |,"callbackUrl":"$callbackUrl"""".stripMargin)
+         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
         .getOrElse("")}}""".stripMargin
   }
 

@@ -33,6 +33,11 @@ import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.ContentTypes
+import play.api.libs.json.Json
+import akka.util.ByteString
+import java.nio.charset.StandardCharsets
 
 /**
   * A Flow modelling callback request.
@@ -57,11 +62,16 @@ trait MultiFileTransferCallbackFlow {
     Flow[MultiFileTransferCallbackRequest]
       .map { callbackRequest =>
         val httpRequest = HttpRequest(
-          method = HttpMethods.GET,
+          method = HttpMethods.POST,
           uri = callbackRequest.callbackUrl,
           headers = collection.immutable.Seq(
             RawHeader("x-conversation-id", callbackRequest.result.conversationId)
-          )
+          ),
+          entity = HttpEntity
+            .apply(
+              ContentTypes.`application/json`,
+              ByteString.fromString(Json.stringify(Json.toJson(callbackRequest.result)), StandardCharsets.UTF_8)
+            )
         )
         (httpRequest, (callbackRequest, httpRequest))
       }

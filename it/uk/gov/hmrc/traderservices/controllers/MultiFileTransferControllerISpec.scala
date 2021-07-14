@@ -17,6 +17,9 @@ import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
 import uk.gov.hmrc.traderservices.models.FileTransferResult
 import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
+import java.util.UUID
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsArray
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -34,6 +37,12 @@ class MultiFileTransferControllerISpec
   val threeBytesArray = Array.fill[Byte](3)(255.toByte)
 
   "MultiFileTransferController" when {
+
+    "X" should {
+      testSingleFileTransferSuccessWithoutCallback("emptyArray", "Route1", Some(emptyArray))
+      testSingleFileTransferSuccessWithCallback("emptyArray", "Route1", Some(emptyArray))
+    }
+
     "POST /transfer-multiple-files" should {
       testFileTransferBadRequest(
         "request with an empty conversationId",
@@ -59,6 +68,17 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithoutCallback("logback.xml", applicationName)
         testSingleFileTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithoutCallback("test2.txt", applicationName)
+
+        testSingleFileTransferSuccessWithCallback("emptyArray", applicationName, Some(emptyArray))
+        testSingleFileTransferSuccessWithCallback("oneByteArray", applicationName, Some(oneByteArray))
+        testSingleFileTransferSuccessWithCallback("twoBytesArray", applicationName, Some(twoBytesArray))
+        testSingleFileTransferSuccessWithCallback("threeBytesArray", applicationName, Some(threeBytesArray))
+        testSingleFileTransferSuccessWithCallback("prod.routes", applicationName)
+        testSingleFileTransferSuccessWithCallback("app.routes", applicationName)
+        testSingleFileTransferSuccessWithCallback("schema.json", applicationName)
+        testSingleFileTransferSuccessWithCallback("logback.xml", applicationName)
+        testSingleFileTransferSuccessWithCallback("test⫐1.jpeg", applicationName)
+        testSingleFileTransferSuccessWithCallback("test2.txt", applicationName)
       }
 
       testSingleFileUploadFailureWithoutCallback("emptyArray", 404, Some(emptyArray))
@@ -168,6 +188,47 @@ class MultiFileTransferControllerISpec
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+    }
+  }
+
+  def testSingleFileTransferSuccessWithCallback(
+    fileName: String,
+    applicationName: String,
+    bytesOpt: Option[Array[Byte]] = None
+  ) {
+    s"return 202 when transfer of single $fileName for #$applicationName succeeds (with callback)" in new MultiFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenMultiFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader,
+          callbackUrl,
+          conversationId
+        )
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
+      verifyCallbackHasHappened(callbackUrl, 1)
     }
   }
 
