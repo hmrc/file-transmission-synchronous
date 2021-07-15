@@ -381,7 +381,7 @@ trait FileTransferStubs {
     io.close()
     val checksum = digest.digest()
     val contentBase64 = new String(encoded, StandardCharsets.UTF_8)
-    (bytes, contentBase64, convertBytesToHex(checksum), fileSize)
+    (bytes, contentBase64, convertBytesToHex(checksum), bytes.length)
   }
 
   private def convertBytesToHex(bytes: Array[Byte]): String = {

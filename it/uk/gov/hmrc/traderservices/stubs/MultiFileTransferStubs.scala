@@ -124,13 +124,14 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     base64Content: String,
     checksum: String,
     fileSize: Int,
-    xmlMetadataHeader: String
+    xmlMetadataHeader: String,
+    status: Int = 202
   ): String = {
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
 
     stubForFileUpload(
-      202,
+      status,
       s"""{
          |"CaseReferenceNumber" : "$caseReferenceNumber",
          |"ApplicationType" : "$applicationName",
@@ -240,7 +241,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
   def verifyTraderServicesMultiFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-multiple-files")))
 
-  abstract class MultiFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
+  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
     val correlationId = ju.UUID.randomUUID().toString()
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -284,7 +285,85 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .getOrElse("")}}""".stripMargin
   }
 
-  val exampleMultiFileRequest = MultiFileTransferRequest(
+  case class TestFileTransfer(
+    fileName: String,
+    upscanReference: String,
+    bytes: Array[Byte],
+    base64Content: String,
+    checksum: String,
+    fileSize: Int,
+    xmlMetadataHeader: String,
+    correlationId: String,
+    status: Int
+  )
+
+  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)]) {
+
+    def fileUrl(f: TestFileTransfer): String
+
+    val conversationId = ju.UUID.randomUUID().toString()
+
+    val testFileTransfers: Seq[TestFileTransfer] = files.map {
+      case (fileName, bytesOpt, status) =>
+        val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
+          case Some(bytes) =>
+            read(new ByteArrayInputStream(bytes))
+
+          case None =>
+            load(s"/$fileName")
+        }
+
+        val upscanReference = fileName.reverse
+        val correlationId = ju.UUID.randomUUID().toString()
+
+        val xmlMetadataHeader = FileTransferMetadataHeader(
+          caseReferenceNumber = "Risk-123",
+          applicationName = "Route1",
+          correlationId = correlationId,
+          conversationId = conversationId,
+          sourceFileName = fileName,
+          sourceFileMimeType = "image/jpeg",
+          fileSize = if (fileSize == 0) 1 else if (fileSize > 6 * 1024 * 1024) 6 * 1024 * 1024 else fileSize,
+          checksum = checksum,
+          batchSize = 1,
+          batchCount = 1
+        ).toXmlString
+
+        TestFileTransfer(
+          fileName,
+          upscanReference,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader,
+          correlationId,
+          status
+        )
+    }
+
+    def jsonPayload(caseReferenceNumber: String, applicationName: String, callbackUrlOpt: Option[String]) =
+      s"""{
+         |"conversationId":"$conversationId",
+         |"caseReferenceNumber":"$caseReferenceNumber",
+         |"applicationName":"$applicationName",
+         |"files":[${testFileTransfers
+        .map(f => s"""{
+         |  "upscanReference":"${f.upscanReference}",
+         |  "downloadUrl":"$wireMockBaseUrlAsString${fileUrl(f)}",
+         |  "fileName":"${f.fileName}",
+         |  "fileMimeType":"image/jpeg",
+         |  "fileSize": ${if (f.fileSize == 0) 1 else if (f.fileSize > 6 * 1024 * 1024) 6 * 1024 * 1024 else f.fileSize},
+         |  "checksum":"${f.checksum}"
+         |}""")
+        .mkString(",")}]
+         |${callbackUrlOpt
+        .map(callbackUrl => s"""
+         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
+        .getOrElse("")}}""".stripMargin
+  }
+
+  val exampleSingleFileRequest = MultiFileTransferRequest(
     conversationId = "1090c5d7-d895-4f15-97b5-aa59ab7468b5",
     caseReferenceNumber = "PC12010081330XGBNZJO04",
     applicationName = "Route1",
