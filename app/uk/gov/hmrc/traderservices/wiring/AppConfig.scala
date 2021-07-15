@@ -19,6 +19,7 @@ package uk.gov.hmrc.traderservices.wiring
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import scala.concurrent.duration.FiniteDuration
 
 @ImplementedBy(classOf[AppConfigImpl])
 trait AppConfig {
@@ -42,6 +43,8 @@ trait AppConfig {
   val eisAuthorizationToken: String
 
   val eisEnvironment: String
+
+  val unitInterval: FiniteDuration
 }
 
 class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
@@ -93,5 +96,8 @@ class AppConfigImpl @Inject() (config: ServicesConfig) extends AppConfig {
         "Missing [microservice.services.eis.cpr.filetransfer.caseevidence.environment] configuration property"
       )
     )
+
+  override val unitInterval: FiniteDuration =
+    FiniteDuration(config.getInt("unit-interval-milliseconds"), "ms")
 
 }

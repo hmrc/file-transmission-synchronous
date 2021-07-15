@@ -16,45 +16,48 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.ContentTypes
-import akka.http.scaladsl.model.HttpEntity
-import akka.stream.scaladsl.Keep
-import akka.stream.scaladsl.Flow
-import scala.util.Try
 import akka.NotUsed
-import akka.http.scaladsl.model.HttpResponse
-import scala.util.Success
-import scala.util.Failure
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.headers.Date
-import akka.http.scaladsl.model.DateTime
-import uk.gov.hmrc.traderservices.models._
-import akka.http.scaladsl.Http
 import akka.actor.ActorSystem
-import uk.gov.hmrc.traderservices.wiring.AppConfig
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ContentTypes
+import akka.http.scaladsl.model.DateTime
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.HttpMethods
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.headers.Date
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.Materializer
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.Keep
 import akka.stream.scaladsl.Source
-import scala.concurrent.Future
-import play.api.mvc.Result
-import play.api.mvc.Results._
 import akka.util.ByteString
 import play.api.Logger
-import akka.stream.Materializer
-import scala.concurrent.duration.FiniteDuration
-import java.nio.charset.StandardCharsets
-import java.io.StringWriter
-import java.io.PrintWriter
-import play.api.libs.json.Json
-import uk.gov.hmrc.traderservices.connectors.ApiError
+import uk.gov.hmrc.traderservices.models._
+import uk.gov.hmrc.traderservices.wiring.AppConfig
 
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.nio.charset.StandardCharsets
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+import scala.concurrent.Await
+
+/**
+  * A Flow modelling transfer of a single file (download and upload).
+  */
 trait FileTransferFlow {
 
   val appConfig: AppConfig
+  val unitInterval: FiniteDuration
+
   implicit val materializer: Materializer
   implicit val actorSystem: ActorSystem
 
-  final val connectionPool: Flow[
+  private val connectionPool: Flow[
     (HttpRequest, (FileTransferRequest, HttpRequest)),
     (Try[HttpResponse], (FileTransferRequest, HttpRequest)),
     NotUsed
@@ -93,11 +96,11 @@ trait FileTransferFlow {
       }
       .via(connectionPool)
       .flatMapConcat {
-        case (Success(fileDownloadResponse), (fileTransferRequest, _)) =>
-          if (fileDownloadResponse.status.isSuccess()) {
+        case (Success(fileDownloadHttpResponse), (fileTransferRequest, fileDownloadHttpRequest)) =>
+          if (fileDownloadHttpResponse.status.isSuccess()) {
             Logger(getClass).info(
               s"Starting transfer with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-                .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}], expected SHA-256 checksum is ${fileTransferRequest.checksum}, received http response status is ${fileDownloadResponse.status} ..."
+                .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}], expected SHA-256 checksum is ${fileTransferRequest.checksum}, received http response status is ${fileDownloadHttpResponse.status} ..."
             )
             val jsonHeader = s"""{
                                 |    "CaseReferenceNumber":"${fileTransferRequest.caseReferenceNumber}",
@@ -108,7 +111,7 @@ trait FileTransferFlow {
             val jsonFooter = "\"\n}"
 
             val fileEncodeAndWrapSource: Source[ByteString, Future[FileSizeAndChecksum]] =
-              fileDownloadResponse.entity.dataBytes
+              fileDownloadHttpResponse.entity.dataBytes
                 .viaMat(EncodeFileBase64)(Keep.right)
                 .prepend(Source.single(ByteString(jsonHeader, StandardCharsets.UTF_8)))
                 .concat(Source.single(ByteString(jsonFooter, StandardCharsets.UTF_8)))
@@ -126,7 +129,7 @@ trait FileTransferFlow {
               batchCount = fileTransferRequest.batchCount
             ).toXmlString
 
-            val eisUploadRequest = HttpRequest(
+            val fileUploadHttpRequest = HttpRequest(
               method = HttpMethods.POST,
               uri = appConfig.eisBaseUrl + appConfig.eisFileTransferApiPath,
               headers = collection.immutable.Seq(
@@ -152,106 +155,108 @@ trait FileTransferFlow {
 
             val source: Source[(Try[HttpResponse], (FileTransferRequest, HttpRequest)), NotUsed] =
               Source
-                .single((eisUploadRequest, (fileTransferRequest, eisUploadRequest)))
+                .single((fileUploadHttpRequest, (fileTransferRequest, fileUploadHttpRequest)))
                 .via(connectionPool)
 
             source
           } else
             Source
               .future(
-                fileDownloadResponse.entity
-                  .toStrict(FiniteDuration(10000, "ms"))
-                  .map(_.data.take(1024).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
+                fileDownloadHttpResponse.entity
+                  .toStrict(unitInterval * 1000)
+                  .map(_.data.take(10240).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
               )
               .flatMapConcat(responseBody =>
-                Source.failed(
-                  FileDownloadFailure(
-                    fileTransferRequest.applicationName,
-                    fileTransferRequest.conversationId,
-                    fileTransferRequest.correlationId.getOrElse(""),
-                    fileTransferRequest.upscanReference,
-                    fileDownloadResponse.status.intValue(),
-                    fileDownloadResponse.status.reason(),
-                    responseBody
+                Source.single(
+                  (
+                    Failure(
+                      FileDownloadFailure(
+                        fileTransferRequest.applicationName,
+                        fileTransferRequest.conversationId,
+                        fileTransferRequest.correlationId.getOrElse(""),
+                        fileTransferRequest.upscanReference,
+                        fileDownloadHttpResponse.status.intValue(),
+                        fileDownloadHttpResponse.status.reason(),
+                        responseBody,
+                        fileTransferRequest.attempt.getOrElse(0)
+                      )
+                    ),
+                    (fileTransferRequest, fileDownloadHttpRequest)
                   )
                 )
               )
 
-        case (Failure(fileDownloadError), (fileTransferRequest, _)) =>
-          Source
-            .failed(
-              FileDownloadException(
-                fileTransferRequest.applicationName,
-                fileTransferRequest.conversationId,
-                fileTransferRequest.correlationId
-                  .getOrElse(""),
-                fileTransferRequest.upscanReference,
-                fileDownloadError
-              )
+        case (Failure(fileDownloadError), (fileTransferRequest, fileDownloadHttpRequest)) =>
+          Source.single(
+            (
+              Failure(
+                FileDownloadException(
+                  fileTransferRequest.applicationName,
+                  fileTransferRequest.conversationId,
+                  fileTransferRequest.correlationId
+                    .getOrElse(""),
+                  fileTransferRequest.upscanReference,
+                  fileDownloadError,
+                  fileTransferRequest.attempt.getOrElse(0)
+                )
+              ),
+              (fileTransferRequest, fileDownloadHttpRequest)
             )
+          )
       }
 
-  final def executeSingleFileTransfer(
-    fileTransferRequest: FileTransferRequest
-  ): Future[Result] =
+  final def executeSingleFileTransfer[R](
+    fileTransferRequest: FileTransferRequest,
+    onComplete: (Int, Option[String], FileTransferRequest) => R,
+    onFailure: (Throwable, FileTransferRequest) => R,
+    zero: R
+  ): Future[R] =
     Source
       .single(fileTransferRequest)
       .via(fileTransferFlow)
-      .runFold[Result](Ok) {
-        case (_, (Success(fileUploadResponse), (fileTransferRequest, eisUploadRequest))) =>
-          if (fileUploadResponse.status.isSuccess()) {
-            fileUploadResponse.discardEntityBytes()
-            Logger(getClass).info(
-              s"Transfer [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-                .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] succeeded."
-            )
-          } else
-            fileUploadResponse.entity
-              .toStrict(FiniteDuration(10000, "ms"))
-              .foreach { entity =>
-                Logger(getClass).error(
-                  s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-                    .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed with status [${fileUploadResponse.status
-                    .intValue()}], reason [${fileUploadResponse.status.reason}] and response body [${entity.data
-                    .take(1024)
-                    .decodeString(StandardCharsets.UTF_8)}]."
-                )
-              }(actorSystem.dispatcher)
+      .runFold[R](zero) {
+        case (_, (Success(fileUploadHttpResponse), (fileTransferRequest, fileUploadHttpRequest))) =>
+          val httpBody: Option[String] = Await.result(
+            fileUploadHttpResponse.entity
+              .toStrict(unitInterval * 1000)
+              .map { entity =>
+                val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
+                if (fileUploadHttpResponse.status.isSuccess())
+                  Logger(getClass).info(
+                    s"Transfer attempt ${fileTransferRequest.attempt.getOrElse(0) + 1} requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
+                      .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} has been successful."
+                  )
+                else
+                  Logger(getClass).error(
+                    s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
+                      .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed with status ${fileUploadHttpResponse.status
+                      .intValue()} beacuse of ${fileUploadHttpResponse.status.reason}, response body was [$body]; it was ${fileTransferRequest.attempt
+                      .getOrElse(0) + 1} attempt."
+                  )
+                if (body.isEmpty) None else Some(body)
+              }(actorSystem.dispatcher),
+            unitInterval * 1000
+          )
+          onComplete(fileUploadHttpResponse.status.intValue(), httpBody, fileTransferRequest)
 
-          Status(fileUploadResponse.status.intValue())
-
-        case (_, (Failure(error: FileDownloadException), _)) =>
+        case (_, (Failure(error: FileDownloadException), (fileTransferRequest, fileUploadHttpRequest))) =>
           Logger(getClass).error(error.getMessage(), error.exception)
-          InternalServerError(
-            Json
-              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
-          )
+          onFailure(error, fileTransferRequest)
 
-        case (_, (Failure(error: FileDownloadFailure), _)) =>
+        case (_, (Failure(error: FileDownloadFailure), (fileTransferRequest, fileUploadHttpRequest))) =>
           Logger(getClass).error(error.getMessage())
-          InternalServerError(
-            Json
-              .toJson(ApiError("ERROR_FILE_DOWNLOAD", Option(s"${error.getClass().getName()}: ${error.getMessage()}")))
-          )
+          onFailure(error, fileTransferRequest)
 
-        case (_, (Failure(uploadError), (fileTransferRequest, eisUploadRequest))) =>
+        case (_, (Failure(uploadError), (fileTransferRequest, fileUploadHttpRequest))) =>
           val writer = new StringWriter()
           uploadError.printStackTrace(new PrintWriter(writer))
           val stackTrace = writer.getBuffer().toString()
           Logger(getClass).error(
-            s"Upload request with [applicationName=${fileTransferRequest.applicationName}] and [conversationId=${fileTransferRequest.conversationId}] and [correlationId=${fileTransferRequest.correlationId
-              .getOrElse("")}] of the file [${fileTransferRequest.upscanReference}] to [${eisUploadRequest.uri}] failed because of [${uploadError.getClass
-              .getName()}: ${uploadError.getMessage()}].\n$stackTrace"
+            s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
+              .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed because of [${uploadError.getClass
+              .getName()}: ${uploadError.getMessage()}].\n$stackTrace; it was ${fileTransferRequest.attempt.getOrElse(0) + 1} attempt."
           )
-          InternalServerError(
-            Json
-              .toJson(
-                ApiError(
-                  "ERROR_FILE_UPLOAD",
-                  Option(s"${uploadError.getClass().getName()}: ${uploadError.getMessage()}")
-                )
-              )
-          )
+          onFailure(uploadError, fileTransferRequest)
       }
 
 }
@@ -261,10 +266,11 @@ final case class FileDownloadException(
   conversationId: String,
   correlationId: String,
   upscanReference: String,
-  exception: Throwable
+  exception: Throwable,
+  attempt: Int
 ) extends Exception(
-      s"Download request with [applicationName=$applicationName] and [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed because of [${exception.getClass.getName}: ${exception
-        .getMessage()}]."
+      s"Download requested by $applicationName with conversationId=$conversationId [correlationId=$correlationId] of the file $upscanReference has failed because of ${exception.getClass.getName}: ${exception
+        .getMessage()}; it was ${attempt + 1} attempt."
     )
 final case class FileDownloadFailure(
   applicationName: String,
@@ -273,7 +279,8 @@ final case class FileDownloadFailure(
   upscanReference: String,
   status: Int,
   reason: String,
-  responseBody: String
+  responseBody: String,
+  attempt: Int
 ) extends Exception(
-      s"Download request with [applicationName=$applicationName] and [conversationId=$conversationId] and [correlationId=$correlationId] of the file [$upscanReference] failed with status [$status $reason] and response body [$responseBody]."
+      s"Download requested by $applicationName with conversationId=$conversationId [correlationId=$correlationId] of the file $upscanReference has failed with status $status $reason and response body [$responseBody]; it was ${attempt + 1} attempt."
     )

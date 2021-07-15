@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.traderservices.models
 
-import java.time.ZonedDateTime
 import play.api.libs.json.Format
 import play.api.libs.json.Json
 import java.time.LocalDateTime
@@ -24,7 +23,6 @@ import java.time.LocalDateTime
 case class FileTransferAudit(
   upscanReference: String,
   downloadUrl: String,
-  uploadTimestamp: ZonedDateTime,
   checksum: String,
   fileName: String,
   fileMimeType: String,
@@ -35,5 +33,6 @@ case class FileTransferAudit(
 )
 
 object FileTransferAudit {
-  implicit val formats: Format[FileTransferAudit] = Json.format[FileTransferAudit]
+  implicit val formats: Format[FileTransferAudit] =
+    Json.format[FileTransferAudit]
 }

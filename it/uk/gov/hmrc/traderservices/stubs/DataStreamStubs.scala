@@ -4,9 +4,9 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import play.api.libs.json.Json
 import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.traderservices.services.TraderServicesAuditEvent.TraderServicesAuditEvent
 import uk.gov.hmrc.traderservices.support.WireMockSupport
 import play.api.libs.json.JsObject
+import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent.FileTransmissionAuditEvent
 
 trait DataStreamStubs extends Eventually {
   me: WireMockSupport =>
@@ -16,7 +16,24 @@ trait DataStreamStubs extends Eventually {
 
   def verifyAuditRequestSent(
     count: Int,
-    event: TraderServicesAuditEvent,
+    event: FileTransmissionAuditEvent
+  ): Unit =
+    eventually {
+      verify(
+        count,
+        postRequestedFor(urlPathMatching(auditUrl))
+          .withRequestBody(
+            similarToJson(s"""{
+          |  "auditSource": "file-transmission-synchronous",
+          |  "auditType": "$event"
+          |}""")
+          )
+      )
+    }
+
+  def verifyAuditRequestSent(
+    count: Int,
+    event: FileTransmissionAuditEvent,
     details: JsObject,
     tags: Map[String, String] = Map.empty
   ): Unit =
@@ -35,7 +52,7 @@ trait DataStreamStubs extends Eventually {
       )
     }
 
-  def verifyAuditRequestNotSent(event: TraderServicesAuditEvent): Unit =
+  def verifyAuditRequestNotSent(event: FileTransmissionAuditEvent): Unit =
     eventually {
       verify(
         0,

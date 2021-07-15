@@ -16,6 +16,7 @@ trait TestApplication {
         "metrics.enabled"                                                     -> true,
         "auditing.enabled"                                                    -> true,
         "auditing.consumer.baseUri.host"                                      -> wireMockHost,
-        "auditing.consumer.baseUri.port"                                      -> wireMockPort
+        "auditing.consumer.baseUri.port"                                      -> wireMockPort,
+        "unit-interval-milliseconds"                                          -> 1
       )
 }

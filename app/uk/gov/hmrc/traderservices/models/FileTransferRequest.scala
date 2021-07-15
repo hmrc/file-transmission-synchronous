@@ -37,7 +37,8 @@ case class FileTransferRequest(
   // private field, this value will be overwritten
   // with x-request-id header value in the controller
   requestId: Option[String] = None,
-  fileSize: Option[Int] = None
+  fileSize: Option[Int] = None,
+  attempt: Option[Int] = None
 )
 
 object FileTransferRequest {
@@ -82,7 +83,7 @@ object FileTransferRequest {
   final val downloadUrlValidator: Validate[String] =
     check(
       uri => Try(HttpRequest.verifyUri(Uri(uri))).isSuccess,
-      s"Invalid downloadUrl, must be valid URI"
+      s"Invalid downloadUrl, must be a valid URI"
     )
 
   final val checksumValidator: Validate[String] =
