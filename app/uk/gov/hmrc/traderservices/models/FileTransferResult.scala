@@ -22,6 +22,10 @@ import java.time.LocalDateTime
 
 final case class FileTransferResult(
   upscanReference: String,
+  checksum: String,
+  fileName: String,
+  fileMimeType: String,
+  fileSize: Int,
   success: Boolean,
   httpStatus: Int,
   transferredAt: LocalDateTime,
@@ -32,5 +36,5 @@ object FileTransferResult {
   implicit val formats: Format[FileTransferResult] =
     Json.format[FileTransferResult]
 
-  val empty = FileTransferResult("", false, 0, LocalDateTime.now())
+  val empty = FileTransferResult("", "", "", "", 0, false, 0, LocalDateTime.now())
 }

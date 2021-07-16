@@ -307,7 +307,7 @@ trait FileTransferStubs {
       conversationId = conversationId,
       sourceFileName = fileName,
       sourceFileMimeType = "image/jpeg",
-      fileSize = 543210,
+      fileSize = bytes.length,
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
@@ -324,7 +324,7 @@ trait FileTransferStubs {
          |"downloadUrl":"$wireMockBaseUrlAsString$fileUrl",
          |"fileName":"$fileName",
          |"fileMimeType":"image/jpeg",
-         |"fileSize": 543210,
+         |"fileSize": ${bytes.length},
          |"checksum":"$checksum",
          |"batchSize": 1,
          |"batchCount": 1

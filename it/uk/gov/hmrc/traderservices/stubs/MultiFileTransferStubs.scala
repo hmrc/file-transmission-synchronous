@@ -14,6 +14,7 @@ import uk.gov.hmrc.traderservices.models.FileTransferResult
 import java.time.LocalDateTime
 import play.api.libs.json.JsObject
 import play.api.libs.json.JsArray
+import play.api.libs.json.JsString
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -84,7 +85,20 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       conversationId,
       "Risk-123",
       applicationName,
-      Seq(FileTransferResult("XYZ0123456789", true, 202, LocalDateTime.now, None))
+      Seq(
+        FileTransferResult(
+          "XYZ0123456789",
+          checksum,
+          fileName,
+          "image/jpeg",
+          fileSize,
+          true,
+          202,
+          LocalDateTime.now,
+          None
+        )
+      ),
+      Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
     )
 
     stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
@@ -204,17 +218,37 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         xmlMetadataHeader
       )
 
-    givenCallbackForFailure(callbackUrl, conversationId, applicationName, status)
+    givenCallbackForFailure(callbackUrl, conversationId, applicationName, fileName, checksum, fileSize, status)
 
     downloadUrl
   }
 
-  def givenCallbackForFailure(callbackUrl: String, conversationId: String, applicationName: String, status: Int) = {
+  def givenCallbackForFailure(
+    callbackUrl: String,
+    conversationId: String,
+    applicationName: String,
+    fileName: String,
+    checksum: String,
+    fileSize: Int,
+    status: Int
+  ) = {
     val expectedResponse = MultiFileTransferResult(
       conversationId,
       "Risk-123",
       applicationName,
-      Seq(FileTransferResult("XYZ0123456789", false, status, LocalDateTime.now, None))
+      Seq(
+        FileTransferResult(
+          "XYZ0123456789",
+          checksum,
+          fileName,
+          "image/jpeg",
+          fileSize,
+          false,
+          status,
+          LocalDateTime.now,
+          None
+        )
+      )
     )
 
     stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
@@ -258,7 +292,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       conversationId = conversationId,
       sourceFileName = fileName,
       sourceFileMimeType = "image/jpeg",
-      fileSize = 543210,
+      fileSize = bytes.length,
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
@@ -276,9 +310,10 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |  "downloadUrl":"$wireMockBaseUrlAsString$fileUrl",
          |  "fileName":"$fileName",
          |  "fileMimeType":"image/jpeg",
-         |  "fileSize": 543210,
+         |  "fileSize": ${bytes.length},
          |  "checksum":"$checksum"
-         |}]
+         |}],
+         |"metadata":{"foo":{"bar":1},"zoo":"zar"}
          |${callbackUrlOpt
         .map(callbackUrl => s"""
          |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
@@ -294,7 +329,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileSize: Int,
     xmlMetadataHeader: String,
     correlationId: String,
-    status: Int
+    status: Int,
+    fileMimeType: String
   )
 
   abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)]) {
@@ -323,7 +359,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           conversationId = conversationId,
           sourceFileName = fileName,
           sourceFileMimeType = "image/jpeg",
-          fileSize = if (fileSize == 0) 1 else if (fileSize > 6 * 1024 * 1024) 6 * 1024 * 1024 else fileSize,
+          fileSize = fileSize,
           checksum = checksum,
           batchSize = 1,
           batchCount = 1
@@ -338,7 +374,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           fileSize,
           xmlMetadataHeader,
           correlationId,
-          status
+          status,
+          "image/jpeg"
         )
     }
 
@@ -353,10 +390,11 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |  "downloadUrl":"$wireMockBaseUrlAsString${fileUrl(f)}",
          |  "fileName":"${f.fileName}",
          |  "fileMimeType":"image/jpeg",
-         |  "fileSize": ${if (f.fileSize == 0) 1 else if (f.fileSize > 6 * 1024 * 1024) 6 * 1024 * 1024 else f.fileSize},
+         |  "fileSize": ${f.fileSize},
          |  "checksum":"${f.checksum}"
          |}""")
-        .mkString(",")}]
+        .mkString(",")}],
+         |"metadata":{"foo":{"bar":1},"zoo":"zar"}
          |${callbackUrlOpt
         .map(callbackUrl => s"""
          |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)

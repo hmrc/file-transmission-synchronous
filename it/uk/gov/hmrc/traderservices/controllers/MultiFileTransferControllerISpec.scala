@@ -19,6 +19,7 @@ import uk.gov.hmrc.traderservices.support.ServerBaseISpec
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.UUID
+import play.api.libs.json.JsString
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -30,7 +31,6 @@ class MultiFileTransferControllerISpec
 
   val wsClient = app.injector.instanceOf[WSClient]
 
-  val emptyArray = Array.emptyByteArray
   val oneByteArray = Array.fill[Byte](1)(255.toByte)
   val twoBytesArray = Array.fill[Byte](2)(255.toByte)
   val threeBytesArray = Array.fill[Byte](3)(255.toByte)
@@ -52,7 +52,6 @@ class MultiFileTransferControllerISpec
       )
 
       for (applicationName <- Seq("Route1", "NDRC", "NIDAC", "C18", "FAS")) {
-        testSingleFileTransferSuccessWithoutCallback("emptyArray", applicationName, Some(emptyArray))
         testSingleFileTransferSuccessWithoutCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithoutCallback("twoBytesArray", applicationName, Some(twoBytesArray))
         testSingleFileTransferSuccessWithoutCallback("threeBytesArray", applicationName, Some(threeBytesArray))
@@ -63,7 +62,6 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithoutCallback("test2.txt", applicationName)
 
-        testSingleFileTransferSuccessWithCallback("emptyArray", applicationName, Some(emptyArray))
         testSingleFileTransferSuccessWithCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithCallback("twoBytesArray", applicationName, Some(twoBytesArray))
         testSingleFileTransferSuccessWithCallback("threeBytesArray", applicationName, Some(threeBytesArray))
@@ -74,11 +72,9 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithCallback("test2.txt", applicationName)
 
-        testMultipleFilesTransferWithoutCallback(applicationName, Seq(("emptyArray", Some(emptyArray), 202)))
         testMultipleFilesTransferWithoutCallback(
           applicationName,
           Seq(
-            ("emptyArray", Some(emptyArray), 202),
             ("oneByteArray", Some(oneByteArray), 201),
             ("twoBytesArray", Some(twoBytesArray), 200),
             ("threeBytesArray", Some(threeBytesArray), 203),
@@ -93,7 +89,6 @@ class MultiFileTransferControllerISpec
         testMultipleFilesTransferWithoutCallback(
           applicationName,
           Seq(
-            ("emptyArray", Some(emptyArray), 201),
             ("oneByteArray", Some(oneByteArray), 404),
             ("twoBytesArray", Some(twoBytesArray), 500),
             ("threeBytesArray", Some(threeBytesArray), 202),
@@ -106,11 +101,9 @@ class MultiFileTransferControllerISpec
           )
         )
 
-        testMultipleFilesTransferWithCallback(applicationName, Seq(("emptyArray", Some(emptyArray), 202)))
         testMultipleFilesTransferWithCallback(
           applicationName,
           Seq(
-            ("emptyArray", Some(emptyArray), 202),
             ("oneByteArray", Some(oneByteArray), 201),
             ("twoBytesArray", Some(twoBytesArray), 200),
             ("threeBytesArray", Some(threeBytesArray), 203),
@@ -125,7 +118,6 @@ class MultiFileTransferControllerISpec
         testMultipleFilesTransferWithCallback(
           applicationName,
           Seq(
-            ("emptyArray", Some(emptyArray), 201),
             ("oneByteArray", Some(oneByteArray), 404),
             ("twoBytesArray", Some(twoBytesArray), 500),
             ("threeBytesArray", Some(threeBytesArray), 202),
@@ -139,7 +131,6 @@ class MultiFileTransferControllerISpec
         )
       }
 
-      testSingleFileUploadFailureWithoutCallback("emptyArray", 404, Some(emptyArray))
       testSingleFileUploadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileUploadFailureWithoutCallback("twoBytesArray", 404, Some(twoBytesArray))
       testSingleFileUploadFailureWithoutCallback("threeBytesArray", 404, Some(threeBytesArray))
@@ -149,7 +140,6 @@ class MultiFileTransferControllerISpec
       testSingleFileUploadFailureWithoutCallback("logback.xml", 409)
       testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 403)
 
-      testSingleFileUploadFailureWithCallback("emptyArray", 404, Some(emptyArray))
       testSingleFileUploadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileUploadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
       testSingleFileUploadFailureWithCallback("threeBytesArray", 404, Some(threeBytesArray))
@@ -159,7 +149,6 @@ class MultiFileTransferControllerISpec
       testSingleFileUploadFailureWithCallback("logback.xml", 409)
       testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 403)
 
-      testSingleFileDownloadFailureWithoutCallback("emptyArray", 404, Some(emptyArray))
       testSingleFileDownloadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithoutCallback("twoBytesArray", 404, Some(twoBytesArray))
       testSingleFileDownloadFailureWithoutCallback("threeBytesArray", 404, Some(threeBytesArray))
@@ -169,7 +158,6 @@ class MultiFileTransferControllerISpec
       testSingleFileDownloadFailureWithoutCallback("logback.xml", 501)
       testSingleFileDownloadFailureWithoutCallback("test⫐1.jpeg", 404)
 
-      testSingleFileDownloadFailureWithCallback("emptyArray", 404, Some(emptyArray))
       testSingleFileDownloadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
       testSingleFileDownloadFailureWithCallback("threeBytesArray", 404, Some(threeBytesArray))
@@ -260,7 +248,7 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, true, 202, _, None) =>
+        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, true, 202, _, None) =>
       }
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, 1)
@@ -356,11 +344,11 @@ class MultiFileTransferControllerISpec
         val f = testFileTransfers.find(_.upscanReference == r.upscanReference).get
         if (f.status < 300)
           r should matchPattern {
-            case FileTransferResult(r.upscanReference, true, f.status, _, None) =>
+            case FileTransferResult(r.upscanReference, _, _, _, _, true, f.status, _, None) =>
           }
         else
           r should matchPattern {
-            case FileTransferResult(r.upscanReference, false, f.status, _, Some(_)) =>
+            case FileTransferResult(r.upscanReference, _, _, _, _, false, f.status, _, Some(_)) =>
           }
       }
       verifyAuthorisationHasHappened()
@@ -415,7 +403,20 @@ class MultiFileTransferControllerISpec
           "Risk-123",
           applicationName,
           testFileTransfers
-            .map(f => FileTransferResult(f.upscanReference, f.status < 300, f.status, LocalDateTime.now, None))
+            .map(f =>
+              FileTransferResult(
+                f.upscanReference,
+                f.checksum,
+                f.fileName,
+                f.fileMimeType,
+                f.fileSize,
+                f.status < 300,
+                f.status,
+                LocalDateTime.now,
+                None
+              )
+            ),
+          Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
         )
 
       stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
@@ -488,7 +489,8 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, false, `status`, _, Some(error)) if error == s"Error $status" =>
+        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, `status`, _, Some(error))
+            if error == s"Error $status" =>
       }
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
@@ -566,7 +568,7 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, false, `status`, _, Some(error))
+        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, `status`, _, Some(error))
             if error == "This is an expected error requested by the test, no worries." =>
       }
       verifyAuthorisationHasHappened()
@@ -600,7 +602,7 @@ class MultiFileTransferControllerISpec
           xmlMetadataHeader
         )
 
-      givenCallbackForFailure(callbackUrl, conversationId, "Route1", status)
+      givenCallbackForFailure(callbackUrl, conversationId, "Route1", fileName, checksum, fileSize, status)
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
@@ -645,7 +647,7 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, false, 0, _, Some(error)) =>
+        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, 0, _, Some(error)) =>
       }
       verifyAuthorisationHasHappened()
       verifyFileUploadHaveNotHappen()

@@ -26,6 +26,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import play.api.libs.json.JsObject
 
 /**
   * An Actor responsible for orchestrating transmission of files.
@@ -42,6 +43,7 @@ class FileTransferActor(
   conversationId: String,
   caseReferenceNumber: String,
   applicationName: String,
+  metadata: Option[JsObject],
   requestId: String,
   transfer: FileTransferActor.TransferFunction,
   audit: FileTransferActor.AuditFunction,
@@ -99,6 +101,10 @@ class FileTransferActor(
             Right(
               FileTransferResult(
                 fileTransferRequest.upscanReference,
+                fileTransferRequest.checksum,
+                fileTransferRequest.fileName,
+                fileTransferRequest.fileMimeType,
+                fileTransferRequest.fileSize.getOrElse(0),
                 isSuccess(httpStatus),
                 httpStatus,
                 LocalDateTime.now,
@@ -114,6 +120,10 @@ class FileTransferActor(
                 Right(
                   FileTransferResult(
                     fileTransferRequest.upscanReference,
+                    fileTransferRequest.checksum,
+                    fileTransferRequest.fileName,
+                    fileTransferRequest.fileMimeType,
+                    fileTransferRequest.fileSize.getOrElse(0),
                     false,
                     fileDownloadFailure.status,
                     LocalDateTime.now,
@@ -125,6 +135,10 @@ class FileTransferActor(
               Right(
                 FileTransferResult(
                   fileTransferRequest.upscanReference,
+                  fileTransferRequest.checksum,
+                  fileTransferRequest.fileName,
+                  fileTransferRequest.fileMimeType,
+                  fileTransferRequest.fileSize.getOrElse(0),
                   false,
                   0,
                   LocalDateTime.now,
@@ -138,6 +152,10 @@ class FileTransferActor(
               Right(
                 FileTransferResult(
                   fileTransferRequest.upscanReference,
+                  fileTransferRequest.checksum,
+                  fileTransferRequest.fileName,
+                  fileTransferRequest.fileMimeType,
+                  fileTransferRequest.fileSize.getOrElse(0),
                   false,
                   0,
                   LocalDateTime.now,
@@ -160,6 +178,10 @@ class FileTransferActor(
       Logger(getClass).error(error.toString())
       results = results :+ FileTransferResult(
         upscanReference = "<unknown>",
+        checksum = "<unknown>",
+        fileName = "<unknown>",
+        fileMimeType = "<unknown>",
+        fileSize = 0,
         success = false,
         httpStatus = 0,
         LocalDateTime.now(),
@@ -172,7 +194,8 @@ class FileTransferActor(
           conversationId,
           caseReferenceNumber,
           applicationName,
-          results
+          results,
+          metadata
         )
         clientRef ! response
         audit(results)

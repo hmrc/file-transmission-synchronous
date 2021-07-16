@@ -24,7 +24,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
   val wsClient = app.injector.instanceOf[WSClient]
 
-  val emptyArray = Array.emptyByteArray
   val oneByteArray = Array.fill[Byte](1)(255.toByte)
   val twoBytesArray = Array.fill[Byte](2)(255.toByte)
   val threeBytesArray = Array.fill[Byte](3)(255.toByte)
@@ -49,7 +48,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
         exampleRequest.copy(batchCount = 2, batchSize = 1)
       )
 
-      testFileTransferSuccess("emptyArray", "Route1", Some(emptyArray))
       testFileTransferSuccess("oneByteArray", "Route1", Some(oneByteArray))
       testFileTransferSuccess("twoBytesArray", "Route1", Some(twoBytesArray))
       testFileTransferSuccess("threeBytesArray", "Route1", Some(threeBytesArray))
@@ -60,7 +58,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileTransferSuccess("test⫐1.jpeg", "Route1")
       testFileTransferSuccess("test2.txt", "Route1")
 
-      testFileTransferSuccess("emptyArray", "NDRC", Some(emptyArray))
       testFileTransferSuccess("oneByteArray", "NDRC", Some(oneByteArray))
       testFileTransferSuccess("twoBytesArray", "NDRC", Some(twoBytesArray))
       testFileTransferSuccess("threeBytesArray", "NDRC", Some(threeBytesArray))
@@ -71,7 +68,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileTransferSuccess("test⫐1.jpeg", "NDRC")
       testFileTransferSuccess("test2.txt", "NDRC")
 
-      testFileUploadFailure("emptyArray", 404, Some(emptyArray))
       testFileUploadFailure("oneByteArray", 404, Some(oneByteArray))
       testFileUploadFailure("twoBytesArray", 404, Some(twoBytesArray))
       testFileUploadFailure("threeBytesArray", 404, Some(threeBytesArray))
@@ -81,7 +77,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileUploadFailure("logback.xml", 409)
       testFileUploadFailure("test⫐1.jpeg", 403)
 
-      testFileDownloadFailure("emptyArray", 404, Some(emptyArray))
       testFileDownloadFailure("oneByteArray", 404, Some(oneByteArray))
       testFileDownloadFailure("twoBytesArray", 404, Some(twoBytesArray))
       testFileDownloadFailure("threeBytesArray", 404, Some(threeBytesArray))
