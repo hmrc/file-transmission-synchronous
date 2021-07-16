@@ -40,18 +40,18 @@ class MultiFileTransferControllerISpec
     "POST /transfer-multiple-files" should {
       testFileTransferBadRequest(
         "request with an empty conversationId",
-        exampleMultiFileRequest.copy(conversationId = "")
+        exampleSingleFileRequest.copy(conversationId = "")
       )
       testFileTransferBadRequest(
         "request with an empty applicationName",
-        exampleMultiFileRequest.copy(applicationName = "")
+        exampleSingleFileRequest.copy(applicationName = "")
       )
       testFileTransferBadRequest(
         "request with invalid applicationName",
-        exampleMultiFileRequest.copy(applicationName = "FOO")
+        exampleSingleFileRequest.copy(applicationName = "FOO")
       )
 
-      for (applicationName <- Seq("Route1", "NDRC", "NIDAC")) {
+      for (applicationName <- Seq("Route1", "NDRC", "NIDAC", "C18", "FAS")) {
         testSingleFileTransferSuccessWithoutCallback("emptyArray", applicationName, Some(emptyArray))
         testSingleFileTransferSuccessWithoutCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithoutCallback("twoBytesArray", applicationName, Some(twoBytesArray))
@@ -73,6 +73,70 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithCallback("logback.xml", applicationName)
         testSingleFileTransferSuccessWithCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithCallback("test2.txt", applicationName)
+
+        testMultipleFilesTransferWithoutCallback(applicationName, Seq(("emptyArray", Some(emptyArray), 202)))
+        testMultipleFilesTransferWithoutCallback(
+          applicationName,
+          Seq(
+            ("emptyArray", Some(emptyArray), 202),
+            ("oneByteArray", Some(oneByteArray), 201),
+            ("twoBytesArray", Some(twoBytesArray), 200),
+            ("threeBytesArray", Some(threeBytesArray), 203),
+            ("prod.routes", None, 202),
+            ("app.routes", None, 202),
+            ("schema.json", None, 202),
+            ("logback.xml", None, 202),
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
+          )
+        )
+        testMultipleFilesTransferWithoutCallback(
+          applicationName,
+          Seq(
+            ("emptyArray", Some(emptyArray), 201),
+            ("oneByteArray", Some(oneByteArray), 404),
+            ("twoBytesArray", Some(twoBytesArray), 500),
+            ("threeBytesArray", Some(threeBytesArray), 202),
+            ("prod.routes", None, 200),
+            ("app.routes", None, 400),
+            ("schema.json", None, 403),
+            ("logback.xml", None, 500),
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
+          )
+        )
+
+        testMultipleFilesTransferWithCallback(applicationName, Seq(("emptyArray", Some(emptyArray), 202)))
+        testMultipleFilesTransferWithCallback(
+          applicationName,
+          Seq(
+            ("emptyArray", Some(emptyArray), 202),
+            ("oneByteArray", Some(oneByteArray), 201),
+            ("twoBytesArray", Some(twoBytesArray), 200),
+            ("threeBytesArray", Some(threeBytesArray), 203),
+            ("prod.routes", None, 202),
+            ("app.routes", None, 202),
+            ("schema.json", None, 202),
+            ("logback.xml", None, 202),
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
+          )
+        )
+        testMultipleFilesTransferWithCallback(
+          applicationName,
+          Seq(
+            ("emptyArray", Some(emptyArray), 201),
+            ("oneByteArray", Some(oneByteArray), 404),
+            ("twoBytesArray", Some(twoBytesArray), 500),
+            ("threeBytesArray", Some(threeBytesArray), 202),
+            ("prod.routes", None, 200),
+            ("app.routes", None, 400),
+            ("schema.json", None, 403),
+            ("logback.xml", None, 500),
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
+          )
+        )
       }
 
       testSingleFileUploadFailureWithoutCallback("emptyArray", 404, Some(emptyArray))
@@ -149,12 +213,12 @@ class MultiFileTransferControllerISpec
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
           .post(s"""{
-                         |"conversationId":"$conversationId",
-                         |"caseReferenceNumber":"Risk-123",
-                         |"applicationName":"Route1",
-                         |"upscanReference":"XYZ0123456789",
-                         |"fileName":"foo",
-                         |"fileMimeType":"image/""")(jsonBodyWritable)
+                           |"conversationId":"$conversationId",
+                           |"caseReferenceNumber":"Risk-123",
+                           |"applicationName":"Route1",
+                           |"upscanReference":"XYZ0123456789",
+                           |"fileName":"foo",
+                           |"fileMimeType":"image/""")(jsonBodyWritable)
           .futureValue
 
         result.status shouldBe 400
@@ -170,7 +234,7 @@ class MultiFileTransferControllerISpec
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 201 when transfer of single $fileName for #$applicationName succeeds (no callback)" in new MultiFileTransferTest(
+    s"return 201 when transfer of single $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -210,7 +274,7 @@ class MultiFileTransferControllerISpec
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 202 when transfer of single $fileName for #$applicationName succeeds (with callback)" in new MultiFileTransferTest(
+    s"return 202 when transfer of single $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -246,8 +310,136 @@ class MultiFileTransferControllerISpec
     }
   }
 
+  def testMultipleFilesTransferWithoutCallback(
+    applicationName: String,
+    files: Seq[(String, Option[Array[Byte]], Int)]
+  ) {
+    s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
+      files
+    ) {
+      givenAuthorised()
+      override def fileUrl(f: TestFileTransfer): String =
+        if (f.status < 300)
+          givenMultiFileTransferSucceeds(
+            "Risk-123",
+            applicationName,
+            f.fileName,
+            f.bytes,
+            f.base64Content,
+            f.checksum,
+            f.fileSize,
+            f.xmlMetadataHeader,
+            f.status
+          )
+        else
+          givenMultiFileUploadFails(
+            f.status,
+            "Risk-123",
+            applicationName,
+            f.fileName,
+            f.bytes,
+            f.base64Content,
+            f.checksum,
+            f.fileSize,
+            f.xmlMetadataHeader
+          )
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
+        .futureValue
+
+      result.status shouldBe 201
+      val resultBody = result.json.as[MultiFileTransferResult]
+      resultBody.results.foreach { r =>
+        val f = testFileTransfers.find(_.upscanReference == r.upscanReference).get
+        if (f.status < 300)
+          r should matchPattern {
+            case FileTransferResult(r.upscanReference, true, f.status, _, None) =>
+          }
+        else
+          r should matchPattern {
+            case FileTransferResult(r.upscanReference, false, f.status, _, Some(_)) =>
+          }
+      }
+      verifyAuthorisationHasHappened()
+      testFileTransfers
+        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (f.status < 500) 1 else 3))
+      val expectedNumberOfUploads =
+        testFileTransfers.map(f => if (f.status < 500) 1 else 3).sum
+      verifyFileUploadHasHappened(expectedNumberOfUploads)
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+    }
+  }
+
+  def testMultipleFilesTransferWithCallback(
+    applicationName: String,
+    files: Seq[(String, Option[Array[Byte]], Int)]
+  ) {
+    s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
+      files
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+
+      override def fileUrl(f: TestFileTransfer): String =
+        if (f.status < 300)
+          givenMultiFileTransferSucceeds(
+            "Risk-123",
+            applicationName,
+            f.fileName,
+            f.bytes,
+            f.base64Content,
+            f.checksum,
+            f.fileSize,
+            f.xmlMetadataHeader,
+            f.status
+          )
+        else
+          givenMultiFileUploadFails(
+            f.status,
+            "Risk-123",
+            applicationName,
+            f.fileName,
+            f.bytes,
+            f.base64Content,
+            f.checksum,
+            f.fileSize,
+            f.xmlMetadataHeader
+          )
+
+      val expectedResponse =
+        MultiFileTransferResult(
+          conversationId,
+          "Risk-123",
+          applicationName,
+          testFileTransfers
+            .map(f => FileTransferResult(f.upscanReference, f.status < 300, f.status, LocalDateTime.now, None))
+        )
+
+      stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      testFileTransfers
+        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (f.status < 500) 1 else 3))
+      val expectedNumberOfUploads =
+        testFileTransfers.map(f => if (f.status < 500) 1 else 3).sum
+      verifyFileUploadHasHappened(expectedNumberOfUploads)
+      verifyCallbackHasHappened(callbackUrl, 1)
+    }
+  }
+
   def testFileTransferBadRequest(description: String, fileTransferRequest: MultiFileTransferRequest) {
-    s"return 400 when processing $description" in new MultiFileTransferTest(
+    s"return 400 when processing $description" in new SingleFileTransferTest(
       fileTransferRequest.files.head.fileName,
       Some(oneByteArray)
     ) {
@@ -269,7 +461,7 @@ class MultiFileTransferControllerISpec
   }
 
   def testSingleFileUploadFailureWithoutCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
-    s"return 201 when uploading $fileName fails because of $status (no callback)" in new MultiFileTransferTest(
+    s"return 201 when uploading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -306,7 +498,7 @@ class MultiFileTransferControllerISpec
   }
 
   def testSingleFileUploadFailureWithCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
-    s"return 202 when uploading $fileName fails because of $status (with callback)" in new MultiFileTransferTest(
+    s"return 202 when uploading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -347,7 +539,7 @@ class MultiFileTransferControllerISpec
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 201 when downloading $fileName fails because of $status (no callback)" in new MultiFileTransferTest(
+    s"return 201 when downloading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -389,7 +581,7 @@ class MultiFileTransferControllerISpec
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 202 when downloading $fileName fails because of $status (with callback)" in new MultiFileTransferTest(
+    s"return 202 when downloading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -427,7 +619,7 @@ class MultiFileTransferControllerISpec
   }
 
   def testSingleFileDownloadFaultWithoutCallback(fileName: String, status: Int, fault: Fault) {
-    s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new MultiFileTransferTest(
+    s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new SingleFileTransferTest(
       fileName
     ) {
       givenAuthorised()
