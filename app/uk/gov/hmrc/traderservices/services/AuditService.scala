@@ -96,7 +96,8 @@ object AuditService {
     numberOfFiles: Int,
     successCount: Int,
     failureCount: Int,
-    files: Seq[FileTransferAudit]
+    files: Seq[FileTransferAudit],
+    metadata: Option[JsObject]
   )
 
   object MultiFileTransferAuditEventDetails {
@@ -116,7 +117,8 @@ object AuditService {
           numberOfFiles = fileTransferRequest.files.size,
           successCount = results.count(_.success),
           failureCount = results.count(r => !r.success),
-          files = convertFileTransferResults(fileTransferRequest, results)
+          files = convertFileTransferResults(fileTransferRequest, results),
+          metadata = fileTransferRequest.metadata
         )
       )
     }
