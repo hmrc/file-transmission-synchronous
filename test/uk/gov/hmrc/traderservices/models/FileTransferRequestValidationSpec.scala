@@ -21,6 +21,8 @@ import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import java.util.UUID
 import uk.gov.hmrc.traderservices.models.FileTransferData
 import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
+import play.api.libs.json.Json
+import play.api.libs.json.JsString
 
 class FileTransferRequestValidationSpec extends UnitSpec {
 
@@ -177,7 +179,8 @@ class FileTransferRequestValidationSpec extends UnitSpec {
       "Risk-123",
       "Route1",
       Seq(validData),
-      Some("https://foo.com/bar/123")
+      Some("https://foo.com/bar/123"),
+      Some(Json.obj("foo" -> JsString("bar")))
     )
 
     "have validate method accepting only valid files transfer request" in {

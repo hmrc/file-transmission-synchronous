@@ -74,14 +74,15 @@ Example request payload:
             {
                 "upscanReference": "XYZ0123456789",
                 "downloadUrl": "https://s3.amazonaws.com/bucket/9d9e1444-2555-422e-b251-44fd2e85530a",
-                "fileName": "test.jpeg",
+                "fileName": "test1.jpeg",
                 "fileMimeType": "image/jpeg",
                 "fileSize": 12345,  // optional
                 "checksum": "a38d7dd155b1ec9703e5f19f839922ad5a1b0aa4f255c6c2b03e61535997d75"
             },
             ...
         ],
-        "callbackUrl":"https://foo.protected.mdtp/transfer-multiple-files/callback/NONCE"  //optional
+        "callbackUrl":"https://foo.protected.mdtp/transfer-multiple-files/callback/NONCE"  //optional,
+        "metadata": //anything JSON
     }
 
 Example 201 response payload (when no callback URL) or callback payload (when callback URL):  
@@ -93,19 +94,28 @@ Example 201 response payload (when no callback URL) or callback payload (when ca
         "results":[
             {
                 "upscanReference":"XYZ0123456789",
+                "fileName": "test1.jpeg",
+                "fileMimeType": "image/jpeg",
+                "checksum":     "a38d7dd155b1ec9703e5f19f839922ad5a1b0aa4f255c6c2b03e61535997d75",
+                "fileSize":1210290,
                 "success":true,
                 "httpStatus":202,
                 "transferredAt":"2021-07-11T12:53:46"
             },
             {
                 "upscanReference":"XYZ0123456789",
+                "fileName": "test2.jpeg",
+                "fileMimeType": "image/jpeg",
+                "checksum":     "a38d7dd155b1ec9703e5f19f839922ad5a1b0aa4f255c6c2b03e61535997d75",
+                "fileSize":98989,
                 "success":false,
                 "httpStatus":500,
                 "transferredAt":"2021-07-11T12:54:01",
                 "error":"some error description"
             },
             ...
-        ]
+        ],
+        "metadata": //original request's metadata
     }
 
 Example 400 error response payload:

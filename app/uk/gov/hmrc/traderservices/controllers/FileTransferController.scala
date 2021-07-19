@@ -134,6 +134,7 @@ class FileTransferController @Inject() (
                 fileTransferRequest.conversationId,
                 fileTransferRequest.caseReferenceNumber,
                 fileTransferRequest.applicationName,
+                fileTransferRequest.metadata,
                 requestId,
                 transferFunction,
                 auditFunction,

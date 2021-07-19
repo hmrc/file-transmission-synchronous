@@ -21,13 +21,15 @@ import play.api.libs.json.Format
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.HttpRequest
 import scala.util.Try
+import play.api.libs.json.JsObject
 
 case class MultiFileTransferRequest(
   conversationId: String,
   caseReferenceNumber: String,
   applicationName: String,
   files: Seq[FileTransferData],
-  callbackUrl: Option[String] = None
+  callbackUrl: Option[String] = None,
+  metadata: Option[JsObject] = None
 ) {
 
   def shouldCallbackAsync: Boolean =
