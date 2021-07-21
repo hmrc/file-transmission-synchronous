@@ -102,7 +102,8 @@ Example 201 response payload (when no callback URL) or callback payload (when ca
                 "fileSize":1210290,
                 "success":true,
                 "httpStatus":202,
-                "transferredAt":"2021-07-11T12:53:46"
+                "transferredAt":"2021-07-11T12:53:46",
+                "correlationId":"07b8090f-69c8-4708-bfc4-bf1731d4b4a8"
             },
             {
                 "upscanReference":"XYZ0123456789",
@@ -113,6 +114,7 @@ Example 201 response payload (when no callback URL) or callback payload (when ca
                 "success":false,
                 "httpStatus":500,
                 "transferredAt":"2021-07-11T12:54:01",
+                "correlationId":"ef240b91-88a2-45c4-961a-17ca34a6ea3a",
                 "error":"some error description"
             },
             ...

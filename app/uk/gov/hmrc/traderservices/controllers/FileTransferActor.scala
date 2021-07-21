@@ -51,6 +51,8 @@ class FileTransferActor(
   unitInterval: FiniteDuration
 ) extends Actor {
 
+  val UNKNOWN = "<unknown>"
+
   import FileTransferActor._
   import context.dispatcher
 
@@ -108,6 +110,7 @@ class FileTransferActor(
                 isSuccess(httpStatus),
                 httpStatus,
                 LocalDateTime.now,
+                fileTransferRequest.correlationId.getOrElse("<undefined>"),
                 if (isSuccess(httpStatus)) None else httpBody
               )
             ),
@@ -127,6 +130,7 @@ class FileTransferActor(
                     false,
                     fileDownloadFailure.status,
                     LocalDateTime.now,
+                    fileTransferRequest.correlationId.getOrElse(UNKNOWN),
                     Option(fileDownloadFailure.responseBody)
                   )
                 )
@@ -142,6 +146,7 @@ class FileTransferActor(
                   false,
                   0,
                   LocalDateTime.now,
+                  fileTransferRequest.correlationId.getOrElse(UNKNOWN),
                   Option(
                     s"${fileDownloadException.exception.getClass().getName()}: ${fileDownloadException.exception.getMessage()}"
                   )
@@ -159,6 +164,7 @@ class FileTransferActor(
                   false,
                   0,
                   LocalDateTime.now,
+                  fileTransferRequest.correlationId.getOrElse(UNKNOWN),
                   Option(s"${error.getClass().getName()}: ${error.getMessage()}")
                 )
               )
@@ -177,14 +183,15 @@ class FileTransferActor(
     case akka.actor.Status.Failure(error) =>
       Logger(getClass).error(error.toString())
       results = results :+ FileTransferResult(
-        upscanReference = "<unknown>",
-        checksum = "<unknown>",
-        fileName = "<unknown>",
-        fileMimeType = "<unknown>",
+        upscanReference = UNKNOWN,
+        checksum = UNKNOWN,
+        fileName = UNKNOWN,
+        fileMimeType = UNKNOWN,
         fileSize = 0,
         success = false,
         httpStatus = 0,
         LocalDateTime.now(),
+        UNKNOWN,
         error = Some(error.toString())
       )
 

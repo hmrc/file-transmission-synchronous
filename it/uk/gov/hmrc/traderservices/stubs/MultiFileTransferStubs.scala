@@ -95,6 +95,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           true,
           202,
           LocalDateTime.now,
+          "",
           None
         )
       ),
@@ -110,7 +111,14 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       val payload = Json
         .toJson(expectedResponse)
         .as[JsObject]
-      val results = payload("results").as[JsArray].value.map(x => x.as[JsObject].-("transferredAt"))
+      val results = payload("results")
+        .as[JsArray]
+        .value
+        .map(x =>
+          x.as[JsObject]
+            .-("transferredAt")
+            .-("correlationId")
+        )
       payload.+(("results", JsArray(results)))
     }
 
@@ -246,6 +254,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           false,
           status,
           LocalDateTime.now,
+          "",
           None
         )
       )
