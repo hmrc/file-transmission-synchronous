@@ -6,7 +6,7 @@ Backend microservice providing an API to transfer a file from the Upscan bucket 
 
 ## API
 
-### Transfer File
+### Transfer Single File
 
 Requests file transfer from some `downloadUrl` returned by Upscan callback to `/cpr/filetransfer/caseevidence/v1`.
 
@@ -49,6 +49,8 @@ Example 400 error response payload
             "errorMessage" : "invalid case reference number"
         }
     }     
+    
+### Transfer Multiple Files    
 
 Method | Path | Description | Authorization
 ---|---|---|---
