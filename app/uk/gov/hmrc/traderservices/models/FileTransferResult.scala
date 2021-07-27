@@ -30,6 +30,7 @@ final case class FileTransferResult(
   httpStatus: Int,
   transferredAt: LocalDateTime,
   correlationId: String,
+  durationMillis: Int,
   error: Option[String] = None
 )
 
@@ -38,5 +39,5 @@ object FileTransferResult {
     Json.format[FileTransferResult]
 
   val empty =
-    FileTransferResult("", "", "", "", 0, false, 0, LocalDateTime.now(), "")
+    FileTransferResult("", "", "", "", 0, false, 0, LocalDateTime.now(), "", 0)
 }

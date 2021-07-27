@@ -39,7 +39,12 @@ case class FileTransferRequest(
   requestId: Option[String] = None,
   fileSize: Option[Int] = None,
   attempt: Option[Int] = None
-)
+) {
+  lazy val startTime: Long = System.nanoTime()
+  lazy val endTime: Long = System.nanoTime()
+  def durationMillis: Int =
+    ((endTime - startTime) / 1000000).toInt
+}
 
 object FileTransferRequest {
 

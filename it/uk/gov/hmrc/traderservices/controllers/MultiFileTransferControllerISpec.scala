@@ -35,6 +35,11 @@ class MultiFileTransferControllerISpec
   val twoBytesArray = Array.fill[Byte](2)(255.toByte)
   val threeBytesArray = Array.fill[Byte](3)(255.toByte)
 
+  object positiveInteger {
+    def unapply(i: Int): Option[Int] =
+      if (i > 0) Some(i) else None
+  }
+
   "MultiFileTransferController" when {
 
     "POST /transfer-multiple-files" should {
@@ -248,7 +253,19 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, true, 202, _, _, None) =>
+        case FileTransferResult(
+              _,
+              `checksum`,
+              `fileName`,
+              "image/jpeg",
+              `fileSize`,
+              true,
+              202,
+              _,
+              _,
+              positiveInteger(duration),
+              None
+            ) =>
       }
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, 1)
@@ -344,11 +361,35 @@ class MultiFileTransferControllerISpec
         val f = testFileTransfers.find(_.upscanReference == r.upscanReference).get
         if (f.status < 300)
           r should matchPattern {
-            case FileTransferResult(r.upscanReference, _, _, _, _, true, f.status, _, _, None) =>
+            case FileTransferResult(
+                  r.upscanReference,
+                  _,
+                  _,
+                  _,
+                  _,
+                  true,
+                  f.status,
+                  _,
+                  _,
+                  positiveInteger(duration),
+                  None
+                ) =>
           }
         else
           r should matchPattern {
-            case FileTransferResult(r.upscanReference, _, _, _, _, false, f.status, _, _, Some(_)) =>
+            case FileTransferResult(
+                  r.upscanReference,
+                  _,
+                  _,
+                  _,
+                  _,
+                  false,
+                  f.status,
+                  _,
+                  _,
+                  positiveInteger(duration),
+                  Some(_)
+                ) =>
           }
       }
       verifyAuthorisationHasHappened()
@@ -414,6 +455,7 @@ class MultiFileTransferControllerISpec
                 f.status,
                 LocalDateTime.now,
                 "",
+                123,
                 None
               )
             ),
@@ -490,8 +532,19 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, `status`, _, _, Some(error))
-            if error == s"Error $status" =>
+        case FileTransferResult(
+              _,
+              `checksum`,
+              `fileName`,
+              "image/jpeg",
+              `fileSize`,
+              false,
+              `status`,
+              _,
+              _,
+              _,
+              Some(error)
+            ) if error == s"Error $status" =>
       }
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
@@ -569,8 +622,19 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, `status`, _, _, Some(error))
-            if error == "This is an expected error requested by the test, no worries." =>
+        case FileTransferResult(
+              _,
+              `checksum`,
+              `fileName`,
+              "image/jpeg",
+              `fileSize`,
+              false,
+              `status`,
+              _,
+              _,
+              _,
+              Some(error)
+            ) if error == "This is an expected error requested by the test, no worries." =>
       }
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
@@ -648,7 +712,7 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 201
       val resultBody = result.json.as[MultiFileTransferResult]
       resultBody.results.head should matchPattern {
-        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, 0, _, _, Some(error)) =>
+        case FileTransferResult(_, `checksum`, `fileName`, "image/jpeg", `fileSize`, false, 0, _, _, _, Some(error)) =>
       }
       verifyAuthorisationHasHappened()
       verifyFileUploadHaveNotHappen()
