@@ -96,6 +96,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           202,
           LocalDateTime.now,
           "",
+          0,
           None
         )
       ),
@@ -118,6 +119,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           x.as[JsObject]
             .-("transferredAt")
             .-("correlationId")
+            .-("durationMillis")
         )
       payload.+(("results", JsArray(results)))
     }
@@ -255,6 +257,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           status,
           LocalDateTime.now,
           "",
+          0,
           None
         )
       )

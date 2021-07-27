@@ -111,6 +111,7 @@ class FileTransferActor(
                 httpStatus,
                 LocalDateTime.now,
                 fileTransferRequest.correlationId.getOrElse("<undefined>"),
+                fileTransferRequest.durationMillis,
                 if (isSuccess(httpStatus)) None else httpBody
               )
             ),
@@ -131,6 +132,7 @@ class FileTransferActor(
                     fileDownloadFailure.status,
                     LocalDateTime.now,
                     fileTransferRequest.correlationId.getOrElse(UNKNOWN),
+                    fileTransferRequest.durationMillis,
                     Option(fileDownloadFailure.responseBody)
                   )
                 )
@@ -147,6 +149,7 @@ class FileTransferActor(
                   0,
                   LocalDateTime.now,
                   fileTransferRequest.correlationId.getOrElse(UNKNOWN),
+                  fileTransferRequest.durationMillis,
                   Option(
                     s"${fileDownloadException.exception.getClass().getName()}: ${fileDownloadException.exception.getMessage()}"
                   )
@@ -165,6 +168,7 @@ class FileTransferActor(
                   0,
                   LocalDateTime.now,
                   fileTransferRequest.correlationId.getOrElse(UNKNOWN),
+                  fileTransferRequest.durationMillis,
                   Option(s"${error.getClass().getName()}: ${error.getMessage()}")
                 )
               )
@@ -192,6 +196,7 @@ class FileTransferActor(
         httpStatus = 0,
         LocalDateTime.now(),
         UNKNOWN,
+        0,
         error = Some(error.toString())
       )
 
