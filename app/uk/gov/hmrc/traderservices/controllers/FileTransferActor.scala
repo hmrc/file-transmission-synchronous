@@ -201,7 +201,11 @@ class FileTransferActor(
       )
 
     case CheckComplete(batchSize) =>
-      if (results.size == batchSize || System.currentTimeMillis() - startTimestamp > 3600000 /*hour*/ ) {
+      val duration = (System.nanoTime() - startTimestamp) / 1000000
+      if (
+        results.size == batchSize ||
+        FiniteDuration(duration, "ms").gt(unitInterval * 36000)
+      ) {
         val response = MultiFileTransferResult(
           conversationId,
           caseReferenceNumber,
@@ -213,7 +217,7 @@ class FileTransferActor(
         audit(results)
         self ! Callback(response, 0)
         Logger(getClass).info(
-          s"Transferred ${results.size} out of $batchSize files in ${(System.nanoTime - startTimestamp) / 1000000} milliseconds. It was ${results
+          s"Transferred ${results.size} out of $batchSize files in $duration milliseconds. It was ${results
             .count(_.success)} successes and ${results.count(f => !f.success)} failures."
         )
       } else
