@@ -106,6 +106,6 @@ trait MultiFileTransferCallbackFlow {
       }
 
   private def shouldRetry(callbackHttpResponse: HttpResponse): Boolean =
-    callbackHttpResponse.status.intValue() >= 500
+    Retry.shouldRetry(callbackHttpResponse.status.intValue())
 
 }
