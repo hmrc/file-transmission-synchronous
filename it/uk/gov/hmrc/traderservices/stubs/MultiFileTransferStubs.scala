@@ -100,6 +100,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           None
         )
       ),
+      0,
       Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
     )
 
@@ -121,7 +122,9 @@ trait MultiFileTransferStubs extends FileTransferStubs {
             .-("correlationId")
             .-("durationMillis")
         )
-      payload.+(("results", JsArray(results)))
+      payload
+        .+(("results", JsArray(results)))
+        .-("totalDurationMillis")
     }
 
   def stubForCallback(callbackUrl: String, callbackPayload: String) =
@@ -260,7 +263,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           0,
           None
         )
-      )
+      ),
+      0
     )
 
     stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))

@@ -144,6 +144,8 @@ class MultiFileTransferControllerISpec
       testSingleFileUploadFailureWithoutCallback("schema.json", 501)
       testSingleFileUploadFailureWithoutCallback("logback.xml", 409)
       testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 403)
+      testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 499)
+      testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 429)
 
       testSingleFileUploadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileUploadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -153,6 +155,8 @@ class MultiFileTransferControllerISpec
       testSingleFileUploadFailureWithCallback("schema.json", 501)
       testSingleFileUploadFailureWithCallback("logback.xml", 409)
       testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 403)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 429)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 499)
 
       testSingleFileDownloadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithoutCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -394,9 +398,9 @@ class MultiFileTransferControllerISpec
       }
       verifyAuthorisationHasHappened()
       testFileTransfers
-        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (f.status < 500) 1 else 3))
+        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (Retry.shouldRetry(f.status)) 3 else 1))
       val expectedNumberOfUploads =
-        testFileTransfers.map(f => if (f.status < 500) 1 else 3).sum
+        testFileTransfers.map(f => if (Retry.shouldRetry(f.status)) 3 else 1).sum
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
@@ -459,6 +463,7 @@ class MultiFileTransferControllerISpec
                 None
               )
             ),
+          0,
           Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
         )
 
@@ -474,9 +479,9 @@ class MultiFileTransferControllerISpec
       verifyAuthorisationHasHappened()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
       testFileTransfers
-        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (f.status < 500) 1 else 3))
+        .foreach(f => verifyFileDownloadHasHappened(f.fileName, if (Retry.shouldRetry(f.status)) 3 else 1))
       val expectedNumberOfUploads =
-        testFileTransfers.map(f => if (f.status < 500) 1 else 3).sum
+        testFileTransfers.map(f => if (Retry.shouldRetry(f.status)) 3 else 1).sum
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
@@ -547,8 +552,8 @@ class MultiFileTransferControllerISpec
             ) if error == s"Error $status" =>
       }
       verifyAuthorisationHasHappened()
-      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
-      verifyFileUploadHasHappened(if (status < 500) 1 else 3)
+      verifyFileDownloadHasHappened(fileName, if (Retry.shouldRetry(status)) 3 else 1)
+      verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
   }
@@ -584,8 +589,8 @@ class MultiFileTransferControllerISpec
       result.status shouldBe 202
       verifyAuthorisationHasHappened()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
-      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
-      verifyFileUploadHasHappened(if (status < 500) 1 else 3)
+      verifyFileDownloadHasHappened(fileName, if (Retry.shouldRetry(status)) 3 else 1)
+      verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
   }
@@ -637,7 +642,7 @@ class MultiFileTransferControllerISpec
             ) if error == "This is an expected error requested by the test, no worries." =>
       }
       verifyAuthorisationHasHappened()
-      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileDownloadHasHappened(fileName, if (Retry.shouldRetry(status)) 3 else 1)
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
@@ -679,7 +684,7 @@ class MultiFileTransferControllerISpec
 
       verifyAuthorisationHasHappened()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
-      verifyFileDownloadHasHappened(fileName, if (status < 500) 1 else 3)
+      verifyFileDownloadHasHappened(fileName, if (Retry.shouldRetry(status)) 3 else 1)
       verifyFileUploadHaveNotHappen()
       verifyCallbackHasHappened(callbackUrl, 1)
     }

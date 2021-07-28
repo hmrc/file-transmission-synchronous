@@ -121,6 +121,7 @@ Example 201 response payload (when no callback URL) or callback payload (when ca
             },
             ...
         ],
+        "totalDurationMillis": 23018,
         "metadata": //original request's metadata
     }
 

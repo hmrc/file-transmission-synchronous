@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.traderservices.models
+package uk.gov.hmrc.traderservices.controllers
 
-import play.api.libs.json.Format
-import play.api.libs.json.Json
-import play.api.libs.json.JsObject
+object Retry {
 
-final case class MultiFileTransferResult(
-  conversationId: String,
-  caseReferenceNumber: String,
-  applicationName: String,
-  results: Seq[FileTransferResult],
-  totalDurationMillis: Int,
-  metadata: Option[JsObject] = None
-)
-
-object MultiFileTransferResult {
-  implicit val formats: Format[MultiFileTransferResult] =
-    Json.format[MultiFileTransferResult]
+  def shouldRetry(httpStatus: Int): Boolean =
+    httpStatus >= 500 || httpStatus == 499 || httpStatus == 429
 }

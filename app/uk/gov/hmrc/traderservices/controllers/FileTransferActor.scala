@@ -62,9 +62,6 @@ class FileTransferActor(
   var clientRef: ActorRef = ActorRef.noSender
   var startTimestamp: Long = 0
 
-  private def shouldRetry(httpStatus: Int): Boolean =
-    httpStatus >= 500
-
   override def receive: Receive = {
     case TransferMultipleFiles(files, batchSize) =>
       startTimestamp = System.nanoTime()
@@ -97,7 +94,7 @@ class FileTransferActor(
           Some(attempt)
         ),
         (httpStatus: Int, httpBody: Option[String], fileTransferRequest: FileTransferRequest) =>
-          if (shouldRetry(httpStatus) && attempt < MAX_RETRY_ATTEMPTS)
+          if (Retry.shouldRetry(httpStatus) && attempt < MAX_RETRY_ATTEMPTS)
             Left(thisMessage.copy(attempt = attempt + 1))
           else
             Right(
@@ -118,7 +115,7 @@ class FileTransferActor(
         (error: Throwable, fileTransferRequest: FileTransferRequest) =>
           error match {
             case fileDownloadFailure: FileDownloadFailure =>
-              if (shouldRetry(fileDownloadFailure.status) && attempt < MAX_RETRY_ATTEMPTS)
+              if (Retry.shouldRetry(fileDownloadFailure.status) && attempt < MAX_RETRY_ATTEMPTS)
                 Left(thisMessage.copy(attempt = attempt + 1))
               else
                 Right(
@@ -201,25 +198,33 @@ class FileTransferActor(
       )
 
     case CheckComplete(batchSize) =>
-      val duration = (System.nanoTime() - startTimestamp) / 1000000
-      if (
-        results.size == batchSize ||
-        FiniteDuration(duration, "ms").gt(unitInterval * 36000)
-      ) {
+      val totalDurationMillis: Int = ((System.nanoTime() - startTimestamp) / 1000000).toInt
+      val completed = results.size == batchSize
+      val timeout = FiniteDuration(totalDurationMillis, "ms").gt(unitInterval * 36000)
+      if (completed || timeout) {
         val response = MultiFileTransferResult(
           conversationId,
           caseReferenceNumber,
           applicationName,
           results,
+          totalDurationMillis,
           metadata
         )
         clientRef ! response
         audit(results)
         self ! Callback(response, 0)
-        Logger(getClass).info(
-          s"Transferred ${results.size} out of $batchSize files in $duration milliseconds. It was ${results
-            .count(_.success)} successes and ${results.count(f => !f.success)} failures."
-        )
+        if (completed)
+          Logger(getClass).info(
+            s"Transferred ${results.size} out of $batchSize files, it was ${results
+              .count(_.success)} successes and ${results.count(f => !f.success)} failures, total duration was $totalDurationMillis ms."
+          )
+        else
+          Logger(getClass).error(
+            s"Timeout, transferred ${if (results.nonEmpty) "none"
+            else s"only ${results.size}"} out of $batchSize files, ${if (results.nonEmpty) s"it was ${results
+              .count(_.success)} successes and ${results.count(f => !f.success)} failures.}, total duration was $totalDurationMillis ms."
+            else ""}"
+          )
       } else
         context.system.scheduler
           .scheduleOnce(unitInterval, self, CheckComplete(batchSize))
