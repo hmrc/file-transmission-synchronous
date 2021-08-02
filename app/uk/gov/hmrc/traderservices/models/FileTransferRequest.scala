@@ -64,7 +64,7 @@ object FileTransferRequest {
   final val conversationIdValidator: Validate[String] =
     check(
       _.lengthMinMaxInclusive(1, 36),
-      "Invalid conversationId, must be between 1 and 32 (inclusive) character long"
+      "Invalid conversationId, must be between 1 and 36 (inclusive) character long"
     )
 
   final val correlationIdValidator: Validate[String] =
