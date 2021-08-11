@@ -48,7 +48,7 @@ case class FileTransferRequest(
 
 object FileTransferRequest {
 
-  val allowedApplicationNames = Seq("Route1", "NDRC", "C18", "NIDAC", "FAS")
+  val allowedApplicationNames = Seq("Route1", "NDRC", "C18", "FAS")
 
   implicit val formats: Format[FileTransferRequest] =
     Json.format[FileTransferRequest]

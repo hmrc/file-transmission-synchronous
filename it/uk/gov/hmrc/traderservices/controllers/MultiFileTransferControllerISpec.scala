@@ -56,7 +56,7 @@ class MultiFileTransferControllerISpec
         exampleSingleFileRequest.copy(applicationName = "FOO")
       )
 
-      for (applicationName <- Seq("Route1", "NDRC", "NIDAC", "C18", "FAS")) {
+      for (applicationName <- Seq("Route1", "NDRC", "C18", "FAS")) {
         testSingleFileTransferSuccessWithoutCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithoutCallback("twoBytesArray", applicationName, Some(twoBytesArray))
         testSingleFileTransferSuccessWithoutCallback("threeBytesArray", applicationName, Some(threeBytesArray))
