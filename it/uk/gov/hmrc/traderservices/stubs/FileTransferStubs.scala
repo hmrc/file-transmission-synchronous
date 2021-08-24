@@ -329,6 +329,21 @@ trait FileTransferStubs {
          |"batchSize": 1,
          |"batchCount": 1
          |}""".stripMargin
+
+    def jsonDataPayload(caseReferenceNumber: String, applicationName: String) =
+      s"""{
+         |"conversationId":"$conversationId",
+         |"caseReferenceNumber":"$caseReferenceNumber",
+         |"applicationName":"$applicationName",
+         |"upscanReference":"XYZ0123456789",
+         |"downloadUrl":"data:image/jpeg;base64,$base64Content",
+         |"fileName":"$fileName",
+         |"fileMimeType":"image/jpeg",
+         |"fileSize": ${bytes.length},
+         |"checksum":"$checksum",
+         |"batchSize": 1,
+         |"batchCount": 1
+         |}""".stripMargin
   }
 
   private val chunkSize: Int = 2400

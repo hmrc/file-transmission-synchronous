@@ -58,6 +58,16 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileTransferSuccess("test⫐1.jpeg", "Route1")
       testFileTransferSuccess("test2.txt", "Route1")
 
+      testDataTransferSuccess("oneByteArray", "Route1", Some(oneByteArray))
+      testDataTransferSuccess("twoBytesArray", "Route1", Some(twoBytesArray))
+      testDataTransferSuccess("threeBytesArray", "Route1", Some(threeBytesArray))
+      testDataTransferSuccess("prod.routes", "Route1")
+      testDataTransferSuccess("app.routes", "Route1")
+      testDataTransferSuccess("schema.json", "Route1")
+      testDataTransferSuccess("logback.xml", "Route1")
+      testDataTransferSuccess("test⫐1.jpeg", "Route1")
+      testDataTransferSuccess("test2.txt", "Route1")
+
       testFileTransferSuccess("oneByteArray", "NDRC", Some(oneByteArray))
       testFileTransferSuccess("twoBytesArray", "NDRC", Some(twoBytesArray))
       testFileTransferSuccess("threeBytesArray", "NDRC", Some(threeBytesArray))
@@ -159,6 +169,37 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       result.status shouldBe 202
       verifyAuthorisationHasHappened()
       verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
+    }
+  }
+
+  def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None) {
+    s"return 202 when transferring data as $fileName for #$applicationName succeeds" in new FileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val fileUrl =
+        givenFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader
+        )
+
+      val result = wsClient
+        .url(s"$url/transfer-file")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonDataPayload("Risk-123", applicationName)))
+        .futureValue
+
+      result.status shouldBe 202
+      verifyAuthorisationHasHappened()
+      verifyFileDownloadHaveNotHappen()
       verifyFileUploadHasHappened(1)
     }
   }
