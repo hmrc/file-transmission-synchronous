@@ -296,7 +296,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
-        read(new ByteArrayInputStream(bytes))
+        MessageUtils.read(new ByteArrayInputStream(bytes))
 
       case None =>
         load(s"/$fileName")
@@ -378,7 +378,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       case (fileName, bytesOpt, status) =>
         val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
           case Some(bytes) =>
-            read(new ByteArrayInputStream(bytes))
+            MessageUtils.read(new ByteArrayInputStream(bytes))
 
           case None =>
             load(s"/$fileName")
