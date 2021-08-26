@@ -2,7 +2,11 @@
 
 # file-transmission-synchronous
 
-Backend microservice providing an API to transfer a file from the Upscan bucket to the PEGA/Documentum via an EIS endpoint `/cpr/filetransfer/caseevidence/v1`.
+Backend microservice providing an API to transfer a single or multiple files from some network location (usually the Upscan bucket) to the PEGA/Documentum via an EIS API endpoint `/cpr/filetransfer/caseevidence/v1`. 
+
+Currently service supports two kinds of download URLs:
+- http(s)
+- data: [RFC 2397](https://datatracker.ietf.org/doc/html/rfc2397)
 
 ## API
 

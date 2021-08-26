@@ -296,7 +296,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
-        read(new ByteArrayInputStream(bytes))
+        MessageUtils.read(new ByteArrayInputStream(bytes))
 
       case None =>
         load(s"/$fileName")
@@ -334,6 +334,25 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .map(callbackUrl => s"""
          |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
         .getOrElse("")}}""".stripMargin
+
+    def jsonDataPayload(caseReferenceNumber: String, applicationName: String, callbackUrlOpt: Option[String]) =
+      s"""{
+         |"conversationId":"$conversationId",
+         |"caseReferenceNumber":"$caseReferenceNumber",
+         |"applicationName":"$applicationName",
+         |"files":[{
+         |  "upscanReference":"XYZ0123456789",
+         |  "downloadUrl":"data:image/jpeg;base64,$base64Content",
+         |  "fileName":"$fileName",
+         |  "fileMimeType":"image/jpeg",
+         |  "fileSize": ${bytes.length},
+         |  "checksum":"$checksum"
+         |}],
+         |"metadata":{"foo":{"bar":1},"zoo":"zar"}
+         |${callbackUrlOpt
+        .map(callbackUrl => s"""
+         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
+        .getOrElse("")}}""".stripMargin
   }
 
   case class TestFileTransfer(
@@ -359,7 +378,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       case (fileName, bytesOpt, status) =>
         val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
           case Some(bytes) =>
-            read(new ByteArrayInputStream(bytes))
+            MessageUtils.read(new ByteArrayInputStream(bytes))
 
           case None =>
             load(s"/$fileName")

@@ -67,6 +67,16 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithoutCallback("test2.txt", applicationName)
 
+        testSingleDataTransferSuccessWithoutCallback("oneByteArray", applicationName, Some(oneByteArray))
+        testSingleDataTransferSuccessWithoutCallback("twoBytesArray", applicationName, Some(twoBytesArray))
+        testSingleDataTransferSuccessWithoutCallback("threeBytesArray", applicationName, Some(threeBytesArray))
+        testSingleDataTransferSuccessWithoutCallback("prod.routes", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("app.routes", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("schema.json", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("logback.xml", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("test2.txt", applicationName)
+
         testSingleFileTransferSuccessWithCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithCallback("twoBytesArray", applicationName, Some(twoBytesArray))
         testSingleFileTransferSuccessWithCallback("threeBytesArray", applicationName, Some(threeBytesArray))
@@ -231,7 +241,7 @@ class MultiFileTransferControllerISpec
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 201 when transfer of single $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
+    s"return 201 when transfer of a single file $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -278,12 +288,64 @@ class MultiFileTransferControllerISpec
     }
   }
 
+  def testSingleDataTransferSuccessWithoutCallback(
+    fileName: String,
+    applicationName: String,
+    bytesOpt: Option[Array[Byte]] = None
+  ) {
+    s"return 201 when transfer of a single data $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val fileUrl =
+        givenMultiFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader
+        )
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonDataPayload("Risk-123", applicationName, None)))
+        .futureValue
+
+      result.status shouldBe 201
+      val resultBody = result.json.as[MultiFileTransferResult]
+      resultBody.results.head should matchPattern {
+        case FileTransferResult(
+              _,
+              `checksum`,
+              `fileName`,
+              "image/jpeg",
+              `fileSize`,
+              true,
+              202,
+              _,
+              _,
+              positiveInteger(duration),
+              None
+            ) =>
+      }
+      verifyAuthorisationHasHappened()
+      verifyFileDownloadHaveNotHappen()
+      verifyFileUploadHasHappened(1)
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+    }
+  }
+
   def testSingleFileTransferSuccessWithCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
   ) {
-    s"return 202 when transfer of single $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
+    s"return 202 when transfer of a single file $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
@@ -314,6 +376,47 @@ class MultiFileTransferControllerISpec
       verifyAuthorisationHasHappened()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
       verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
+      verifyCallbackHasHappened(callbackUrl, 1)
+    }
+  }
+
+  def testSingleDataTransferSuccessWithCallback(
+    fileName: String,
+    applicationName: String,
+    bytesOpt: Option[Array[Byte]] = None
+  ) {
+    s"return 202 when transfer of a single data $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenMultiFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader,
+          callbackUrl,
+          conversationId
+        )
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonDataPayload("Risk-123", applicationName, Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHaveNotHappen()
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }

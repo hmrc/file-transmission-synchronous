@@ -36,15 +36,19 @@ import play.api.Logger
 import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
+import java.io.BufferedInputStream
+import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.URL
 import java.nio.charset.StandardCharsets
+import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import scala.concurrent.Await
+import java.net.URLStreamHandler
 
 /**
   * A Flow modelling transfer of a single file (download and upload).
@@ -64,6 +68,62 @@ trait FileTransferFlow {
   ] = Http()
     .superPool[(FileTransferRequest, HttpRequest)]()
 
+  final def createFileUploadHttpRequest(
+    fileTransferRequest: FileTransferRequest,
+    dataBytes: Source[ByteString, Any]
+  ): HttpRequest = {
+    val jsonHeader = s"""{
+                        |    "CaseReferenceNumber":"${fileTransferRequest.caseReferenceNumber}",
+                        |    "ApplicationType":"${fileTransferRequest.applicationName}",
+                        |    "OriginatingSystem":"Digital",
+                        |    "Content":"""".stripMargin
+
+    val jsonFooter = "\"\n}"
+
+    val fileEncodeAndWrapSource: Source[ByteString, Future[FileSizeAndChecksum]] =
+      dataBytes
+        .viaMat(EncodeFileBase64)(Keep.right)
+        .prepend(Source.single(ByteString(jsonHeader, StandardCharsets.UTF_8)))
+        .concat(Source.single(ByteString(jsonFooter, StandardCharsets.UTF_8)))
+
+    val xmlMetadata = FileTransferMetadataHeader(
+      caseReferenceNumber = fileTransferRequest.caseReferenceNumber,
+      applicationName = fileTransferRequest.applicationName,
+      correlationId = fileTransferRequest.correlationId.getOrElse(""),
+      conversationId = fileTransferRequest.conversationId,
+      sourceFileName = fileTransferRequest.fileName,
+      sourceFileMimeType = fileTransferRequest.fileMimeType,
+      fileSize = fileTransferRequest.fileSize.getOrElse(1024),
+      checksum = fileTransferRequest.checksum,
+      batchSize = fileTransferRequest.batchSize,
+      batchCount = fileTransferRequest.batchCount
+    ).toXmlString
+
+    HttpRequest(
+      method = HttpMethods.POST,
+      uri = appConfig.eisBaseUrl + appConfig.eisFileTransferApiPath,
+      headers = collection.immutable.Seq(
+        RawHeader("x-request-id", fileTransferRequest.requestId.getOrElse("-")),
+        RawHeader("x-conversation-id", fileTransferRequest.conversationId),
+        RawHeader(
+          "x-correlation-id",
+          fileTransferRequest.correlationId.getOrElse(
+            throw new IllegalArgumentException("Missing correlationId argument of FileTransferRequest")
+          )
+        ),
+        RawHeader("customprocesseshost", "Digital"),
+        RawHeader("accept", "application/json"),
+        RawHeader("authorization", s"Bearer ${appConfig.eisAuthorizationToken}"),
+        RawHeader("checksumAlgorithm", "SHA-256"),
+        RawHeader("checksum", fileTransferRequest.checksum),
+        Date(DateTime.now),
+        RawHeader("x-metadata", xmlMetadata),
+        RawHeader("referer", fileTransferRequest.applicationName)
+      ),
+      entity = HttpEntity.apply(ContentTypes.`application/json`, fileEncodeAndWrapSource)
+    )
+  }
+
   /**
     * Akka Stream flow:
     * - requests downloading the file,
@@ -82,7 +142,7 @@ trait FileTransferFlow {
           s"Starting transfer requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
             .getOrElse("")}] of the file ${fileTransferRequest.upscanReference}, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
         )
-        val httpRequest = HttpRequest(
+        val fileDownloadHttpRequest = HttpRequest(
           method = HttpMethods.GET,
           uri = fileTransferRequest.downloadUrl,
           headers = collection.immutable.Seq(
@@ -96,62 +156,15 @@ trait FileTransferFlow {
             )
           )
         )
-        (httpRequest, (fileTransferRequest, httpRequest))
+        (fileDownloadHttpRequest, (fileTransferRequest, fileDownloadHttpRequest))
       }
       .via(connectionPool)
       .flatMapConcat {
         case (Success(fileDownloadHttpResponse), (fileTransferRequest, fileDownloadHttpRequest)) =>
           if (fileDownloadHttpResponse.status.isSuccess()) {
-            val jsonHeader = s"""{
-                                |    "CaseReferenceNumber":"${fileTransferRequest.caseReferenceNumber}",
-                                |    "ApplicationType":"${fileTransferRequest.applicationName}",
-                                |    "OriginatingSystem":"Digital",
-                                |    "Content":"""".stripMargin
 
-            val jsonFooter = "\"\n}"
-
-            val fileEncodeAndWrapSource: Source[ByteString, Future[FileSizeAndChecksum]] =
-              fileDownloadHttpResponse.entity.dataBytes
-                .viaMat(EncodeFileBase64)(Keep.right)
-                .prepend(Source.single(ByteString(jsonHeader, StandardCharsets.UTF_8)))
-                .concat(Source.single(ByteString(jsonFooter, StandardCharsets.UTF_8)))
-
-            val xmlMetadata = FileTransferMetadataHeader(
-              caseReferenceNumber = fileTransferRequest.caseReferenceNumber,
-              applicationName = fileTransferRequest.applicationName,
-              correlationId = fileTransferRequest.correlationId.getOrElse(""),
-              conversationId = fileTransferRequest.conversationId,
-              sourceFileName = fileTransferRequest.fileName,
-              sourceFileMimeType = fileTransferRequest.fileMimeType,
-              fileSize = fileTransferRequest.fileSize.getOrElse(1024),
-              checksum = fileTransferRequest.checksum,
-              batchSize = fileTransferRequest.batchSize,
-              batchCount = fileTransferRequest.batchCount
-            ).toXmlString
-
-            val fileUploadHttpRequest = HttpRequest(
-              method = HttpMethods.POST,
-              uri = appConfig.eisBaseUrl + appConfig.eisFileTransferApiPath,
-              headers = collection.immutable.Seq(
-                RawHeader("x-request-id", fileTransferRequest.requestId.getOrElse("-")),
-                RawHeader("x-conversation-id", fileTransferRequest.conversationId),
-                RawHeader(
-                  "x-correlation-id",
-                  fileTransferRequest.correlationId.getOrElse(
-                    throw new IllegalArgumentException("Missing correlationId argument of FileTransferRequest")
-                  )
-                ),
-                RawHeader("customprocesseshost", "Digital"),
-                RawHeader("accept", "application/json"),
-                RawHeader("authorization", s"Bearer ${appConfig.eisAuthorizationToken}"),
-                RawHeader("checksumAlgorithm", "SHA-256"),
-                RawHeader("checksum", fileTransferRequest.checksum),
-                Date(DateTime.now),
-                RawHeader("x-metadata", xmlMetadata),
-                RawHeader("referer", fileTransferRequest.applicationName)
-              ),
-              entity = HttpEntity.apply(ContentTypes.`application/json`, fileEncodeAndWrapSource)
-            )
+            val fileUploadHttpRequest: HttpRequest =
+              createFileUploadHttpRequest(fileTransferRequest, fileDownloadHttpResponse.entity.dataBytes)
 
             val source: Source[(Try[HttpResponse], (FileTransferRequest, HttpRequest)), NotUsed] =
               Source
@@ -207,6 +220,64 @@ trait FileTransferFlow {
           )
       }
 
+  /**
+    * Akka Stream flow:
+    * - encodes data content stream using base64,
+    * - wraps base64 content in a json payload,
+    * - forwards to the upstream endpoint.
+    */
+  final val dataTransferFlow: Flow[
+    FileTransferRequest,
+    (Try[HttpResponse], (FileTransferRequest, HttpRequest)),
+    NotUsed
+  ] =
+    Flow[FileTransferRequest]
+      .map { fileTransferRequest =>
+        Logger(getClass).info(
+          s"Starting transfer requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
+            .getOrElse("")}] of the data inlined in the URL, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
+        )
+
+        val dataBytes: Source[ByteString, NotUsed] =
+          sourceFromDataURL(fileTransferRequest.downloadUrl)
+
+        val fileUploadHttpRequest: HttpRequest =
+          createFileUploadHttpRequest(fileTransferRequest, dataBytes)
+
+        (fileUploadHttpRequest, (fileTransferRequest, fileUploadHttpRequest))
+      }
+      .via(connectionPool)
+
+  final val dataUrlHandler: URLStreamHandler =
+    new com.github.robtimus.net.protocol.data.Handler()
+
+  final def sourceFromDataURL(url: String): Source[ByteString, NotUsed] =
+    Source.single {
+      val out = new ByteArrayOutputStream()
+      val chunk: Array[Byte] = Array.ofDim[Byte](1024)
+      Try {
+        val in = new BufferedInputStream(new URL(null, url, dataUrlHandler).openStream())
+        var bytesRead: Int = in.read(chunk)
+        while (bytesRead > 0) {
+          out.write(chunk, 0, bytesRead)
+          bytesRead = in.read(chunk)
+        }
+        val bytes = ByteString(out.toByteArray())
+        Try(in.close())
+        Try(out.close())
+        bytes
+      }.transform(
+        c => Success(c),
+        t =>
+          Failure(
+            new Exception(
+              s"Error while opening an URL starting with ${url.take(50)}",
+              t
+            )
+          )
+      ).get
+    }
+
   final def executeSingleFileTransfer[R](
     fileTransferRequest: FileTransferRequest,
     onComplete: (Int, Option[String], FileTransferRequest) => R,
@@ -215,7 +286,7 @@ trait FileTransferFlow {
   ): Future[R] =
     Source
       .single(fileTransferRequest)
-      .via(fileTransferFlow)
+      .via(if (fileTransferRequest.isDataURL) dataTransferFlow else fileTransferFlow)
       .runFold[R](zero) {
         case (_, (Success(fileUploadHttpResponse), (fileTransferRequest, fileUploadHttpRequest))) =>
           val httpBody: Option[String] = Await.result(

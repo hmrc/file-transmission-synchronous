@@ -21,6 +21,7 @@ import play.api.libs.json.Format
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.HttpRequest
 import scala.util.Try
+import java.net.URL
 
 case class FileTransferRequest(
   conversationId: String,
@@ -44,6 +45,9 @@ case class FileTransferRequest(
   lazy val endTime: Long = System.nanoTime()
   def durationMillis: Int =
     ((endTime - startTime) / 1000000).toInt
+
+  def isDataURL: Boolean =
+    downloadUrl.startsWith("data:")
 }
 
 object FileTransferRequest {
@@ -87,8 +91,8 @@ object FileTransferRequest {
 
   final val downloadUrlValidator: Validate[String] =
     check(
-      uri => Try(HttpRequest.verifyUri(Uri(uri))).isSuccess,
-      s"Invalid downloadUrl, must be a valid URI"
+      uri => Try(HttpRequest.verifyUri(Uri(uri))).isSuccess || uri.startsWith("data:"),
+      s"Invalid downloadUrl, must be a valid http(s): or data: URL"
     )
 
   final val checksumValidator: Validate[String] =

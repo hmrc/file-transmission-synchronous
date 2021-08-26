@@ -76,6 +76,12 @@ class FileTransferRequestValidationSpec extends UnitSpec {
         .validate(validRequest.copy(downloadUrl = "foo.jpg"))
         .isValid shouldBe true
       FileTransferRequest
+        .validate(validRequest.copy(downloadUrl = "http://foo.bar/baz/foo.jpg"))
+        .isValid shouldBe true
+      FileTransferRequest
+        .validate(validRequest.copy(downloadUrl = "data:text/plain;charset=UTF-8,hello"))
+        .isValid shouldBe true
+      FileTransferRequest
         .validate(validRequest.copy(downloadUrl = "foo:bar"))
         .isValid shouldBe false
       FileTransferRequest
@@ -131,6 +137,12 @@ class FileTransferRequestValidationSpec extends UnitSpec {
       FileTransferData
         .validate(validData.copy(downloadUrl = ""))
         .isValid shouldBe false
+      FileTransferData
+        .validate(validData.copy(downloadUrl = "http://foo.bar/baz/foo.jpg"))
+        .isValid shouldBe true
+      FileTransferData
+        .validate(validData.copy(downloadUrl = "data:text/plain;charset=UTF-8,hello"))
+        .isValid shouldBe true
       FileTransferData
         .validate(validData.copy(downloadUrl = "foo.jpg"))
         .isValid shouldBe true

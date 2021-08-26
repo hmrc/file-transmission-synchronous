@@ -1,21 +1,17 @@
 package uk.gov.hmrc.traderservices.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.traderservices.support.WireMockSupport
-import java.util.UUID
 import com.github.tomakehurst.wiremock.http.Fault
-import java.security.MessageDigest
-import java.util.Base64
-import java.nio.ByteBuffer
-import scala.util.Try
+import com.github.tomakehurst.wiremock.http.HttpStatus
+import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
+import uk.gov.hmrc.traderservices.models.FileTransferRequest
+import uk.gov.hmrc.traderservices.support.WireMockSupport
+
+import java.io.ByteArrayInputStream
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.{util => ju}
-import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
-import java.net.URLEncoder
-import java.io.InputStream
-import java.io.ByteArrayInputStream
-import uk.gov.hmrc.traderservices.models.FileTransferRequest
-import com.github.tomakehurst.wiremock.http.HttpStatus
+import scala.util.Try
 
 trait FileTransferStubs {
   me: WireMockSupport =>
@@ -295,7 +291,7 @@ trait FileTransferStubs {
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
-        read(new ByteArrayInputStream(bytes))
+        MessageUtils.read(new ByteArrayInputStream(bytes))
 
       case None =>
         load(s"/$fileName")
@@ -329,9 +325,22 @@ trait FileTransferStubs {
          |"batchSize": 1,
          |"batchCount": 1
          |}""".stripMargin
-  }
 
-  private val chunkSize: Int = 2400
+    def jsonDataPayload(caseReferenceNumber: String, applicationName: String) =
+      s"""{
+         |"conversationId":"$conversationId",
+         |"caseReferenceNumber":"$caseReferenceNumber",
+         |"applicationName":"$applicationName",
+         |"upscanReference":"XYZ0123456789",
+         |"downloadUrl":"data:image/jpeg;base64,$base64Content",
+         |"fileName":"$fileName",
+         |"fileMimeType":"image/jpeg",
+         |"fileSize": ${bytes.length},
+         |"checksum":"$checksum",
+         |"batchSize": 1,
+         |"batchCount": 1
+         |}""".stripMargin
+  }
 
   private val cache: collection.mutable.Map[String, (Array[Byte], String, String, Int)] =
     collection.mutable.Map()
@@ -342,54 +351,12 @@ trait FileTransferStubs {
       .getOrElse(
         Try {
           val io = getClass.getResourceAsStream(resource)
-          val result = read(io)
+          val result = MessageUtils.read(io)
           cache.update(resource, result)
           result
         }
           .fold(e => throw new RuntimeException(s"Could not load $resource file", e), identity)
       )
-
-  final def read(io: InputStream): (Array[Byte], String, String, Int) = {
-    val digest = MessageDigest.getInstance("SHA-256")
-    val chunk = Array.ofDim[Byte](chunkSize)
-    val encoder = Base64.getEncoder()
-    var hasNext = true
-    val rawBuffer = ByteBuffer.allocate(10 * 1024 * 1024)
-    val encodedBuffer = ByteBuffer.allocate(14 * 1024 * 1024)
-    var fileSize = 0
-    while (hasNext) {
-      for (i <- 0 until chunkSize) chunk.update(i, 0)
-      val readLength = io.read(chunk)
-      hasNext = readLength != -1
-      if (readLength >= 0) {
-        fileSize = fileSize + readLength
-        val chunkBytes =
-          if (readLength == chunk.length) chunk
-          else chunk.take(readLength)
-        digest.update(chunkBytes)
-        val encoded = encoder.encode(chunkBytes)
-        encodedBuffer.put(encoded)
-        rawBuffer.put(chunkBytes)
-      }
-    }
-    val bytes = Array.ofDim[Byte](rawBuffer.position())
-    rawBuffer.clear()
-    rawBuffer.get(bytes)
-    val encoded = Array.ofDim[Byte](encodedBuffer.position())
-    encodedBuffer.clear()
-    encodedBuffer.get(encoded)
-    io.close()
-    val checksum = digest.digest()
-    val contentBase64 = new String(encoded, StandardCharsets.UTF_8)
-    (bytes, contentBase64, convertBytesToHex(checksum), bytes.length)
-  }
-
-  private def convertBytesToHex(bytes: Array[Byte]): String = {
-    val sb = new StringBuilder
-    for (b <- bytes)
-      sb.append(String.format("%02x", Byte.box(b)))
-    sb.toString
-  }
 
   val exampleRequest = FileTransferRequest(
     conversationId = "1090c5d7-d895-4f15-97b5-aa59ab7468b5",
