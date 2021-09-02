@@ -30,7 +30,7 @@ def testDeps(scope: String) =
     "com.vladsch.flexmark" % "flexmark-all" % "0.36.8" % scope
   )
 
-val itDeps = Seq(
+lazy val itDeps = Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % "it",
   "com.github.tomakehurst"  % "wiremock-jre8"      % "2.30.1" % "it"
 )
