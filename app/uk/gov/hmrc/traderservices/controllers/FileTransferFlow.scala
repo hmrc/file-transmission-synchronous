@@ -278,6 +278,9 @@ trait FileTransferFlow {
       ).get
     }
 
+  /**
+    * Runs the flow for a single transfer request.
+    */
   final def executeSingleFileTransfer[R](
     fileTransferRequest: FileTransferRequest,
     onComplete: (Int, Option[String], FileTransferRequest) => R,
@@ -289,28 +292,31 @@ trait FileTransferFlow {
       .via(if (fileTransferRequest.isDataURL) dataTransferFlow else fileTransferFlow)
       .runFold[R](zero) {
         case (_, (Success(fileUploadHttpResponse), (fileTransferRequest, fileUploadHttpRequest))) =>
-          val httpBody: Option[String] = Await.result(
-            fileUploadHttpResponse.entity
-              .toStrict(unitInterval * 1000)
-              .map { entity =>
-                val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
-                if (fileUploadHttpResponse.status.isSuccess())
-                  Logger(getClass).info(
-                    s"Transfer attempt ${fileTransferRequest.attempt.getOrElse(0) + 1} requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-                      .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} has been successful, duration was ${fileTransferRequest.durationMillis} ms."
-                  )
-                else
+          if (fileUploadHttpResponse.status.isSuccess()) {
+            fileUploadHttpResponse.entity.discardBytes()
+            Logger(getClass).info(
+              s"Transfer attempt ${fileTransferRequest.attempt.getOrElse(0) + 1} requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
+                .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} has been successful, duration was ${fileTransferRequest.durationMillis} ms."
+            )
+            onComplete(fileUploadHttpResponse.status.intValue(), None, fileTransferRequest)
+          } else {
+            val httpBody: Option[String] = Await.result(
+              fileUploadHttpResponse.entity
+                .toStrict(unitInterval * 1000)
+                .map { entity =>
+                  val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
                   Logger(getClass).error(
                     s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
                       .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed with status ${fileUploadHttpResponse.status
                       .intValue()} beacuse of ${fileUploadHttpResponse.status.reason}, response body was [$body]; it was ${fileTransferRequest.attempt
                       .getOrElse(0) + 1} attempt, duration was ${fileTransferRequest.durationMillis} ms."
                   )
-                if (body.isEmpty) None else Some(body)
-              }(actorSystem.dispatcher),
-            unitInterval * 1000
-          )
-          onComplete(fileUploadHttpResponse.status.intValue(), httpBody, fileTransferRequest)
+                  if (body.isEmpty) None else Some(body)
+                }(actorSystem.dispatcher),
+              unitInterval * 1000
+            )
+            onComplete(fileUploadHttpResponse.status.intValue(), httpBody, fileTransferRequest)
+          }
 
         case (_, (Failure(error: FileDownloadException), (fileTransferRequest, fileUploadHttpRequest))) =>
           Logger(getClass).error(error.getMessage(), error.exception)

@@ -192,7 +192,8 @@ trait FileTransferStubs {
     checksum: String,
     xmlMetadataHeader: String,
     applicationName: String,
-    caseReferenceNumber: String
+    caseReferenceNumber: String,
+    delay: Int = 0
   ): Unit =
     stubFor(
       post(urlEqualTo(FILE_TRANSFER_URL))
@@ -217,6 +218,7 @@ trait FileTransferStubs {
             .withStatus(status)
             .withHeader("Content-Type", "application/json")
             .withBody(if (HttpStatus.isSuccess(status)) "" else s"Error $status")
+            .withFixedDelay(delay)
         )
     )
 

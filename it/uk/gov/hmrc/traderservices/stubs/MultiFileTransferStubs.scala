@@ -15,6 +15,7 @@ import java.time.LocalDateTime
 import play.api.libs.json.JsObject
 import play.api.libs.json.JsArray
 import play.api.libs.json.JsString
+import com.github.tomakehurst.wiremock.http.Fault
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -104,7 +105,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
     )
 
-    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
+    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
     downloadUrl
   }
 
@@ -127,13 +128,31 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .-("totalDurationMillis")
     }
 
-  def stubForCallback(callbackUrl: String, callbackPayload: String) =
+  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int) =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .withRequestBody(equalToJson(callbackPayload, true, true))
         .willReturn(
           aResponse()
-            .withStatus(200)
+            .withStatus(status)
+        )
+    )
+
+  def stubForCallback(callbackUrl: String, status: Int) =
+    stubFor(
+      post(urlEqualTo(callbackUrl))
+        .willReturn(
+          aResponse()
+            .withStatus(status)
+        )
+    )
+
+  def stubForCallback(callbackUrl: String, fault: Fault) =
+    stubFor(
+      post(urlEqualTo(callbackUrl))
+        .willReturn(
+          aResponse()
+            .withFault(fault)
         )
     )
 
@@ -152,7 +171,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     checksum: String,
     fileSize: Int,
     xmlMetadataHeader: String,
-    status: Int = 202
+    status: Int = 202,
+    delay: Int = 0
   ): String = {
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -168,7 +188,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       checksum,
       xmlMetadataHeader,
       applicationName,
-      caseReferenceNumber
+      caseReferenceNumber,
+      delay
     )
 
     downloadUrl
@@ -183,7 +204,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     base64Content: String,
     checksum: String,
     fileSize: Int,
-    xmlMetadataHeader: String
+    xmlMetadataHeader: String,
+    delay: Int = 0
   ): String = {
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -199,7 +221,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       checksum,
       xmlMetadataHeader,
       applicationName,
-      caseReferenceNumber
+      caseReferenceNumber,
+      delay
     )
 
     downloadUrl
@@ -267,7 +290,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       0
     )
 
-    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
+    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
   }
 
   def givenTraderMultiServicesFileTransferSucceeds(): Unit =

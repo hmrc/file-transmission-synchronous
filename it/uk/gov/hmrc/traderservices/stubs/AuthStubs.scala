@@ -80,6 +80,15 @@ trait AuthStubs {
     )
   }
 
+  def givenAuthorisationFails(status: Int) =
+    stubFor(
+      post(urlEqualTo("/auth/authorise"))
+        .willReturn(
+          aResponse()
+            .withStatus(status)
+        )
+    )
+
   def verifyAuthorisationHasHappened(): Unit =
     verify(moreThanOrExactly(1), postRequestedFor(urlEqualTo("/auth/authorise")))
 

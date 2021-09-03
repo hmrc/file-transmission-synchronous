@@ -86,7 +86,7 @@ class FileTransferController @Inject() (
           case (errorCode, errorMessage) =>
             Logger(getClass).error(s"$errorCode $errorMessage")
             Future.successful(
-              BadRequest(Json.toJson(ApiError(errorCode, if (errorMessage.isEmpty()) None else Some(errorMessage))))
+              BadRequest(Json.toJson(ApiError(errorCode, Some(errorMessage))))
             )
         }
       }
@@ -161,7 +161,7 @@ class FileTransferController @Inject() (
           case (errorCode, errorMessage) =>
             Logger(getClass).error(s"$errorCode $errorMessage")
             Future.successful(
-              BadRequest(Json.toJson(ApiError(errorCode, if (errorMessage.isEmpty()) None else Some(errorMessage))))
+              BadRequest(Json.toJson(ApiError(errorCode, Some(errorMessage))))
             )
         }
       }

@@ -78,6 +78,7 @@ trait MultiFileTransferCallbackFlow {
       .via(connectionPool)
       .map {
         case (t @ Success(callbackHttpResponse), (callbackRequest, callbackHttpRequest)) =>
+          callbackHttpResponse.entity.discardBytes()
           if (callbackHttpResponse.status.isSuccess()) {
             Logger(getClass).info(
               s"Successfully called back ${callbackRequest.result.applicationName} with conversationId=${callbackRequest.result.conversationId}"
@@ -87,7 +88,8 @@ trait MultiFileTransferCallbackFlow {
             val msg =
               s"Failure, received ${callbackHttpResponse.status.intValue()} while calling back ${callbackRequest.result.applicationName} with conversationId=${callbackRequest.result.conversationId}"
             Logger(getClass).error(msg)
-            (t, Left((msg, shouldRetry(callbackHttpResponse))))
+            val shouldRetry = Retry.shouldRetry(callbackHttpResponse.status.intValue())
+            (t, Left((msg, shouldRetry)))
           }
 
         case (t @ Failure(callbackError), (callbackRequest, callbackHttpRequest)) =>
@@ -104,8 +106,5 @@ trait MultiFileTransferCallbackFlow {
       .runFold[Either[(String, Boolean), Unit]](Right(())) {
         case (_, (_, result)) => result
       }
-
-  private def shouldRetry(callbackHttpResponse: HttpResponse): Boolean =
-    Retry.shouldRetry(callbackHttpResponse.status.intValue())
 
 }
