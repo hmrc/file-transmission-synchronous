@@ -16,20 +16,24 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"        %% "bootstrap-backend-play-28" % "5.1.0",
-  "uk.gov.hmrc"        %% "auth-client"               % "5.6.0-play-28",
-  "com.kenshoo"        %% "metrics-play"              % "2.7.3_0.8.2",
-  "org.typelevel"      %% "cats-core"                 % "2.6.0",
-  "com.github.robtimus" % "data-url"                  % "2.0"
+  "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "5.12.0",
+  "uk.gov.hmrc"                  %% "auth-client"               % "5.7.0-play-28",
+  "com.kenshoo"                  %% "metrics-play"              % "2.7.3_0.8.2",
+  "org.typelevel"                %% "cats-core"                 % "2.6.1",
+  "com.github.robtimus"           % "data-url"                  % "2.0",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.12.5"
 )
 
 def testDeps(scope: String) =
   Seq(
-    "org.scalatest"          %% "scalatest"          % "3.2.8"  % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % scope,
-    "com.github.tomakehurst"  % "wiremock-jre8"      % "2.27.2" % scope,
-    "com.vladsch.flexmark"    % "flexmark-all"       % "0.36.8" % scope
+    "org.scalatest"       %% "scalatest"    % "3.2.9"  % scope,
+    "com.vladsch.flexmark" % "flexmark-all" % "0.36.8" % scope
   )
+
+lazy val itDeps = Seq(
+  "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % "it",
+  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.30.1" % "it"
+)
 
 lazy val root = (project in file("."))
   .settings(
@@ -37,7 +41,7 @@ lazy val root = (project in file("."))
     organization := "uk.gov.hmrc",
     scalaVersion := "2.12.12",
     PlayKeys.playDefaultPort := 10003,
-    libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it"),
+    libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it") ++ itDeps,
     publishingSettings,
     scoverageSettings,
     unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",
