@@ -139,6 +139,37 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
         result.status shouldBe 400
         verifyAuthorisationHasHappened()
       }
+
+      "return 500 when authorisation fails" in new FileTransferTest(
+        "foo.jpeg",
+        Some(oneByteArray)
+      ) {
+        givenAuthorisationFails(403)
+        val fileUrl =
+          givenFileTransferSucceeds(
+            "Risk-123",
+            "Route1",
+            "foo.jpeg",
+            bytes,
+            base64Content,
+            checksum,
+            fileSize,
+            xmlMetadataHeader
+          )
+
+        val result = wsClient
+          .url(s"$url/transfer-file")
+          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .post(Json.parse(jsonPayload("Risk-123", "Route1")))
+          .futureValue
+
+        result.status shouldBe 500
+        result.json should haveProperty[String]("errorCode", be("ERROR_UNKNOWN"))
+        verifyAuthorisationHasHappened()
+        verifyFileDownloadHaveNotHappen()
+        verifyFileUploadHaveNotHappen()
+      }
+
     }
   }
 

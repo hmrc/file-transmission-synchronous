@@ -144,6 +144,20 @@ class MultiFileTransferControllerISpec
             ("test2.txt", None, 202)
           )
         )
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 400)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 403)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 404)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 429)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 499)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 500)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 501)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 502)
+        testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 503)
+
+        testCallbackFault("oneByteArray", applicationName, Some(oneByteArray), Fault.CONNECTION_RESET_BY_PEER)
+        testCallbackFault("oneByteArray", applicationName, Some(oneByteArray), Fault.EMPTY_RESPONSE)
+        testCallbackFault("oneByteArray", applicationName, Some(oneByteArray), Fault.MALFORMED_RESPONSE_CHUNK)
+        testCallbackFault("oneByteArray", applicationName, Some(oneByteArray), Fault.RANDOM_DATA_THEN_CLOSE)
       }
 
       testSingleFileUploadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
@@ -232,6 +246,36 @@ class MultiFileTransferControllerISpec
         verifyAuthorisationHasHappened()
         verifyFileUploadHaveNotHappen()
         verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
+      }
+
+      "return 500 when authorisation fails" in new SingleFileTransferTest(
+        "foo.jpeg",
+        Some(oneByteArray)
+      ) {
+        givenAuthorisationFails(403)
+        val fileUrl =
+          givenMultiFileTransferSucceeds(
+            "Risk-123",
+            "Route1",
+            "foo.jpeg",
+            bytes,
+            base64Content,
+            checksum,
+            fileSize,
+            xmlMetadataHeader
+          )
+
+        val result = wsClient
+          .url(s"$url/transfer-multiple-files")
+          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
+          .futureValue
+
+        result.status shouldBe 500
+        result.json should haveProperty[String]("errorCode", be("ERROR_UNKNOWN"))
+        verifyAuthorisationHasHappened()
+        verifyFileDownloadHaveNotHappen()
+        verifyFileUploadHaveNotHappen()
       }
     }
   }
@@ -570,7 +614,7 @@ class MultiFileTransferControllerISpec
           Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
         )
 
-      stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse))
+      stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
@@ -825,6 +869,90 @@ class MultiFileTransferControllerISpec
       verifyAuthorisationHasHappened()
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+    }
+  }
+
+  def testCallbackFailure(
+    fileName: String,
+    applicationName: String,
+    bytesOpt: Option[Array[Byte]] = None,
+    callbackStatus: Int
+  ) {
+    s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails with $callbackStatus" in new SingleFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenMultiFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader
+        )
+
+      stubForCallback(callbackUrl, callbackStatus)
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
+      verifyCallbackHasHappened(callbackUrl, if (Retry.shouldRetry(callbackStatus)) 3 else 1)
+    }
+  }
+
+  def testCallbackFault(
+    fileName: String,
+    applicationName: String,
+    bytesOpt: Option[Array[Byte]] = None,
+    callbackFault: Fault
+  ) {
+    s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails because of $callbackFault" in new SingleFileTransferTest(
+      fileName,
+      bytesOpt
+    ) {
+      givenAuthorised()
+      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val fileUrl =
+        givenMultiFileTransferSucceeds(
+          "Risk-123",
+          applicationName,
+          fileName,
+          bytes,
+          base64Content,
+          checksum,
+          fileSize,
+          xmlMetadataHeader
+        )
+
+      stubForCallback(callbackUrl, callbackFault)
+
+      val result = wsClient
+        .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
+        .futureValue
+
+      result.status shouldBe 202
+
+      verifyAuthorisationHasHappened()
+      verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
+      verifyFileDownloadHasHappened(fileName, 1)
+      verifyFileUploadHasHappened(1)
+      verifyCallbackHasHappened(callbackUrl, 1)
     }
   }
 
