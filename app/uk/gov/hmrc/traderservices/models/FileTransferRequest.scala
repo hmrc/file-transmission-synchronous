@@ -101,7 +101,6 @@ object FileTransferRequest {
       s"Invalid checksum SHA-256, must be 64 characters long"
     )
 
-  // checking repository permissions
   final val fileNameValidator: Validate[String] =
     check(
       fileName => fileName.nonEmpty && fileName.length < 94,
