@@ -103,7 +103,7 @@ object FileTransferRequest {
 
   final val fileNameValidator: Validate[String] =
     check(
-      fileName => fileName.nonEmpty && fileName.length < 94,
+      fileName => fileName.nonEmpty,
       s"Invalid fileName, must not be empty and must be maximum 94 characters long (94 = 127 - 33, because we have to yet append correlationId suffix)"
     )
 
