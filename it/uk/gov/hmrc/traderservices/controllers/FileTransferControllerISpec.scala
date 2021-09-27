@@ -39,7 +39,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileTransferBadRequest("request with an empty checksum", exampleRequest.copy(checksum = ""))
       testFileTransferBadRequest("request with too long checksum", exampleRequest.copy(checksum = "a" * 65))
       testFileTransferBadRequest("request with an empty fileName", exampleRequest.copy(fileName = ""))
-      testFileTransferBadRequest("request with too long fileName", exampleRequest.copy(fileName = "a" * 95))
       testFileTransferBadRequest("request with an empty fileMimeType", exampleRequest.copy(fileMimeType = ""))
       testFileTransferBadRequest("request with a zero batchSize", exampleRequest.copy(batchSize = 0))
       testFileTransferBadRequest("request with a zero batchCount", exampleRequest.copy(batchCount = 0))

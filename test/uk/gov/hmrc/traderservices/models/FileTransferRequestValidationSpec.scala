@@ -112,7 +112,7 @@ class FileTransferRequestValidationSpec extends UnitSpec {
           .isValid shouldBe true
       FileTransferRequest
         .validate(validRequest.copy(fileName = "a" * 94))
-        .isValid shouldBe false
+        .isValid shouldBe true
       FileTransferRequest
         .validate(validRequest.copy(fileMimeType = ""))
         .isValid shouldBe false
@@ -177,7 +177,7 @@ class FileTransferRequestValidationSpec extends UnitSpec {
           .isValid shouldBe true
       FileTransferData
         .validate(validData.copy(fileName = "a" * 94))
-        .isValid shouldBe false
+        .isValid shouldBe true
       FileTransferData
         .validate(validData.copy(fileMimeType = ""))
         .isValid shouldBe false
