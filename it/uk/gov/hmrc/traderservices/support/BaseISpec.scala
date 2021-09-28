@@ -20,7 +20,7 @@ abstract class BaseISpec extends UnitSpec with WireMockSupport with DataStreamSt
     givenAuditConnector()
   }
 
-  protected implicit def materializer: Materializer = app.materializer
+  protected implicit lazy val materializer: Materializer = app.materializer
 
   protected def checkHtmlResultWithBodyText(result: Result, expectedSubstring: String): Unit = {
     status(result) shouldBe 200
@@ -30,7 +30,7 @@ abstract class BaseISpec extends UnitSpec with WireMockSupport with DataStreamSt
   }
 
   private lazy val messagesApi = app.injector.instanceOf[MessagesApi]
-  private implicit def messages: Messages = messagesApi.preferred(Seq.empty[Lang])
+  private implicit lazy val messages: Messages = messagesApi.preferred(Seq.empty[Lang])
 
   protected def htmlEscapedMessage(key: String): String = HtmlFormat.escape(Messages(key)).toString
 
