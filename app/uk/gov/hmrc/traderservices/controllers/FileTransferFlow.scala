@@ -34,6 +34,7 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import play.api.Logger
 import uk.gov.hmrc.traderservices.models._
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
 import java.io.BufferedInputStream
@@ -41,6 +42,7 @@ import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URL
+import java.net.URLStreamHandler
 import java.nio.charset.StandardCharsets
 import scala.concurrent.Await
 import scala.concurrent.Future
@@ -48,7 +50,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.net.URLStreamHandler
 
 /**
   * A Flow modelling transfer of a single file (download and upload).
@@ -60,6 +61,10 @@ trait FileTransferFlow {
 
   implicit val materializer: Materializer
   implicit val actorSystem: ActorSystem
+
+  final val MAX_FILENAME_LENGTH = 255
+  final val DEFAULT_FILE_SIZE_IF_MISSING = 1024
+  final val MAX_ERROR_HTTP_BODY_LENGTH = 10240
 
   private val connectionPool: Flow[
     (HttpRequest, (FileTransferRequest, HttpRequest)),
@@ -86,14 +91,19 @@ trait FileTransferFlow {
         .prepend(Source.single(ByteString(jsonHeader, StandardCharsets.UTF_8)))
         .concat(Source.single(ByteString(jsonFooter, StandardCharsets.UTF_8)))
 
+    val correlationId = fileTransferRequest.correlationId.getOrElse("")
+
+    val sourceFileName =
+      FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileTransferRequest.fileName, correlationId)
+
     val xmlMetadata = FileTransferMetadataHeader(
       caseReferenceNumber = fileTransferRequest.caseReferenceNumber,
       applicationName = fileTransferRequest.applicationName,
-      correlationId = fileTransferRequest.correlationId.getOrElse(""),
+      correlationId = correlationId,
       conversationId = fileTransferRequest.conversationId,
-      sourceFileName = fileTransferRequest.fileName,
+      sourceFileName = sourceFileName,
       sourceFileMimeType = fileTransferRequest.fileMimeType,
-      fileSize = fileTransferRequest.fileSize.getOrElse(1024),
+      fileSize = fileTransferRequest.fileSize.getOrElse(DEFAULT_FILE_SIZE_IF_MISSING),
       checksum = fileTransferRequest.checksum,
       batchSize = fileTransferRequest.batchSize,
       batchCount = fileTransferRequest.batchCount
@@ -177,7 +187,9 @@ trait FileTransferFlow {
               .future(
                 fileDownloadHttpResponse.entity
                   .toStrict(unitInterval * 1000)
-                  .map(_.data.take(10240).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
+                  .map(_.data.take(MAX_ERROR_HTTP_BODY_LENGTH).decodeString(StandardCharsets.UTF_8))(
+                    actorSystem.dispatcher
+                  )
               )
               .flatMapConcat(responseBody =>
                 Source.single(
