@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.traderservices.models
 
-import play.api.libs.json.Json
-import play.api.libs.json.Format
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.Uri
+import play.api.libs.json.Format
+import play.api.libs.json.Json
+
 import scala.util.Try
-import java.net.URL
 
 case class FileTransferRequest(
   conversationId: String,
@@ -48,11 +48,12 @@ case class FileTransferRequest(
 
   def isDataURL: Boolean =
     downloadUrl.startsWith("data:")
+
 }
 
 object FileTransferRequest {
 
-  val allowedApplicationNames = Seq("Route1", "NDRC", "C18", "FAS")
+  final val allowedApplicationNames = Seq("Route1", "NDRC", "C18", "FAS")
 
   implicit val formats: Format[FileTransferRequest] =
     Json.format[FileTransferRequest]
@@ -103,8 +104,8 @@ object FileTransferRequest {
 
   final val fileNameValidator: Validate[String] =
     check(
-      fileName => fileName.nonEmpty && fileName.length < 94,
-      s"Invalid fileName, must not be empty and must be maximum 94 characters long (94 = 127 - 33, because we have to yet append correlationId suffix)"
+      fileName => fileName.nonEmpty,
+      s"Invalid fileName, must not be empty"
     )
 
   final val fileMimeTypeValidator: Validate[String] =
