@@ -36,7 +36,7 @@ case class FileTransferRequest(
   batchCount: Int,
   correlationId: Option[String] = None,
   // private field, this value will be overwritten
-  // with x-request-id header value in the controller
+  // with UUID in the controller
   requestId: Option[String] = None,
   fileSize: Option[Int] = None,
   attempt: Option[Int] = None
