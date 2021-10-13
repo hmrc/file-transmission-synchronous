@@ -60,14 +60,11 @@ class FileTransferController @Inject() (
           executeSingleFileTransfer[Result](
             fileTransferRequest
               .copy(
-                correlationId = fileTransferRequest.correlationId
-                  .orElse(request.headers.get("X-Correlation-Id"))
-                  .orElse(
-                    request.headers
-                      .get("X-Request-Id")
-                      .map(_.takeRight(36))
-                  )
-                  .orElse(Some(UUID.randomUUID().toString())),
+                correlationId = Some(
+                  fileTransferRequest.correlationId
+                    .orElse(request.headers.get("X-Correlation-Id"))
+                    .getOrElse(UUID.randomUUID().toString())
+                ),
                 requestId = hc.requestId.map(_.value)
               ),
             (httpStatus: Int, httpBody: Option[String], fileTransferRequest: FileTransferRequest) =>
@@ -108,10 +105,7 @@ class FileTransferController @Inject() (
     Action.async(parseTolerantTextUtf8) { implicit request =>
       withAuthorised {
         withPayload[MultiFileTransferRequest] { fileTransferRequest =>
-          val requestId: String = request.headers
-            .get("X-Request-Id")
-            .map(_.takeRight(36))
-            .getOrElse(UUID.randomUUID().toString())
+          val requestId: String = UUID.randomUUID().toString()
 
           val auditFunction: FileTransferActor.AuditFunction =
             auditService.auditMultipleFilesTransmission(fileTransferRequest)
