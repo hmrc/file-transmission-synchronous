@@ -22,6 +22,7 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.HttpRequest
 import scala.util.Try
 import play.api.libs.json.JsObject
+import com.github.arturopala.validator.Validator
 
 case class MultiFileTransferRequest(
   conversationId: String,
