@@ -19,9 +19,9 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "5.12.0",
   "uk.gov.hmrc"                  %% "auth-client"               % "5.7.0-play-28",
   "com.kenshoo"                  %% "metrics-play"              % "2.7.3_0.8.2",
-  "org.typelevel"                %% "cats-core"                 % "2.6.1",
   "com.github.robtimus"           % "data-url"                  % "2.0",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.12.5"
+  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.12.5",
+  "com.github.arturopala"        %% "validator"                 % "0.3.0"
 )
 
 def testDeps(scope: String) =

@@ -20,6 +20,7 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.Uri
 import play.api.libs.json.Format
 import play.api.libs.json.Json
+import com.github.arturopala.validator.Validator
 
 import scala.util.Try
 

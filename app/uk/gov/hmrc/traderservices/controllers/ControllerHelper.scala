@@ -26,7 +26,7 @@ import scala.concurrent.Future
 import play.api.mvc.Result
 import scala.concurrent.ExecutionContext
 import play.api.mvc.Request
-import uk.gov.hmrc.traderservices.models.Validator
+import com.github.arturopala.validator.Validator
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import play.api.libs.json.Json
