@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ class AuditService @Inject() (val auditConnector: AuditConnector) {
     event: FileTransmissionAuditEvent,
     transactionName: String,
     details: JsValue
-  )(implicit hc: HeaderCarrier, request: Request[Any], ec: ExecutionContext): ExtendedDataEvent = {
+  )(implicit hc: HeaderCarrier, request: Request[Any]): ExtendedDataEvent = {
     val tags = hc.toAuditTags(transactionName, request.path)
     ExtendedDataEvent(
       auditSource = "file-transmission-synchronous",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import scala.util.Failure
 import scala.util.Try
 import scala.concurrent.Future
 import play.api.mvc.Result
-import scala.concurrent.ExecutionContext
 import play.api.mvc.Request
 import uk.gov.hmrc.traderservices.models.Validator
 import cats.data.Validated.Invalid
@@ -41,11 +40,11 @@ trait ControllerHelper {
   type HandleError = (String, String) => Future[Result]
 
   protected val parseTolerantTextUtf8: BodyParser[String] =
-    BodyParser("parseTolerantTextUtf8") { request =>
+    BodyParser("parseTolerantTextUtf8") { _ =>
       val decodeAsUtf8: Sink[ByteString, Future[Either[Result, String]]] =
         Sink
           .fold[Either[Result, String], ByteString](Right("")) {
-            case (a, b) => a.map(_ + (b.decodeString(StandardCharsets.UTF_8)))
+            case (a, b) => a.map(_ + b.decodeString(StandardCharsets.UTF_8))
           }
       Accumulator(decodeAsUtf8)
     }
@@ -57,15 +56,14 @@ trait ControllerHelper {
   )(implicit
     request: Request[String],
     reads: Reads[T],
-    validate: Validator.Validate[T],
-    ec: ExecutionContext
+    validate: Validator.Validate[T]
   ): Future[Result] =
     Try(Json.parse(request.body).validate[T]) match {
 
       case Success(JsSuccess(payload, _)) =>
         validate(payload) match {
 
-          case Valid(a) =>
+          case Valid(_) =>
             f(payload)
 
           case Invalid(errs) =>
