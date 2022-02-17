@@ -96,7 +96,7 @@ trait JsonMatchers {
 
   def eachArrayElement[T: Reads](
     matcher: Matcher[T]
-  )(implicit classTag: ClassTag[T]): Matcher[JsArray] =
+  ): Matcher[JsArray] =
     new Matcher[JsArray] {
       override def apply(left: JsArray): MatchResult =
         left.value
