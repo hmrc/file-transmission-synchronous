@@ -317,6 +317,7 @@ trait FileTransferFlow {
                 .toStrict(unitInterval * 1000)
                 .map { entity =>
                   val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
+                  Logger(getClass).error("Upload request failed.")
                   Logger(getClass).error(
                     s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
                       .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed with status ${fileUploadHttpResponse.status
