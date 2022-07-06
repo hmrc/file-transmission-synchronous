@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.UUID
 import play.api.libs.json.JsString
+import uk.gov.hmrc.http.HeaderNames
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -214,6 +215,7 @@ class MultiFileTransferControllerISpec
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.obj())
           .futureValue
 
@@ -233,6 +235,7 @@ class MultiFileTransferControllerISpec
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(s"""{
                            |"conversationId":"$conversationId",
                            |"caseReferenceNumber":"Risk-123",
@@ -267,7 +270,7 @@ class MultiFileTransferControllerISpec
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
-          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
           .futureValue
 
@@ -304,7 +307,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -356,7 +359,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -411,7 +414,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -452,7 +455,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -502,7 +505,10 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .withHttpHeaders(
+          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          HeaderNames.authorisation -> "Bearer dummy-it-token"
+        )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -618,7 +624,10 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .withHttpHeaders(
+          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          HeaderNames.authorisation -> "Bearer dummy-it-token"
+        )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -644,7 +653,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.toJson(fileTransferRequest))
         .futureValue
 
@@ -677,7 +686,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -729,7 +738,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
         .futureValue
 
@@ -767,7 +776,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -823,7 +832,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
         .futureValue
 
@@ -858,6 +867,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -900,7 +910,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -942,7 +952,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 

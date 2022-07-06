@@ -16,8 +16,7 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "5.20.0",
-  "com.kenshoo"                  %% "metrics-play"              % "2.7.3_0.8.2",
+  "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "5.24.0",
   "org.typelevel"                %% "cats-core"                 % "2.7.0",
   "com.github.robtimus"           % "data-url"                  % "2.0",
   "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.13.1"
@@ -38,7 +37,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.12",
+    scalaVersion := "2.12.15",
     PlayKeys.playDefaultPort := 10003,
     libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it") ++ itDeps,
     publishingSettings,
