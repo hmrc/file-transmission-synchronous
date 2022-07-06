@@ -10,9 +10,11 @@ import uk.gov.hmrc.traderservices.support.ServerBaseISpec
 import uk.gov.hmrc.traderservices.support.JsonMatchers
 import com.github.tomakehurst.wiremock.http.Fault
 import play.api.libs.ws.BodyWritable
+
 import java.nio.charset.StandardCharsets
 import play.api.libs.ws.InMemoryBody
 import akka.util.ByteString
+import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 
 class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with FileTransferStubs with JsonMatchers {
@@ -109,6 +111,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
         val result = wsClient
           .url(s"$url/transfer-file")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.obj())
           .futureValue
 
@@ -126,6 +129,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
         val result = wsClient
           .url(s"$url/transfer-file")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(s"""{
                          |"conversationId":"$conversationId",
                          |"caseReferenceNumber":"Risk-123",
@@ -158,7 +162,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
         val result = wsClient
           .url(s"$url/transfer-file")
-          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.parse(jsonPayload("Risk-123", "Route1")))
           .futureValue
 
@@ -192,7 +196,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName)))
         .futureValue
 
@@ -223,7 +227,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName)))
         .futureValue
 
@@ -244,7 +248,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.toJson(fileTransferRequest))
         .futureValue
 
@@ -273,7 +277,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
@@ -302,7 +306,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
@@ -332,6 +336,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
+        .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
