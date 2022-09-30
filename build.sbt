@@ -24,7 +24,7 @@ lazy val compileDeps = Seq(
 
 def testDeps(scope: String) =
   Seq(
-    "org.scalatest"       %% "scalatest"    % "3.2.11"  % scope,
+    "org.scalatest"       %% "scalatest"    % "3.2.13"  % scope,
     "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % scope
   )
 
@@ -34,6 +34,10 @@ lazy val itDeps = Seq(
 )
 
 lazy val root = (project in file("."))
+  .settings(
+    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
+    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
+  )
   .settings(
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
