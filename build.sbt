@@ -34,6 +34,11 @@ lazy val itDeps = Seq(
 )
 
 lazy val root = (project in file("."))
+  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .settings(
+    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
+    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
+  )
   .settings(
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
@@ -58,7 +63,7 @@ lazy val root = (project in file("."))
     IntegrationTest / scalafmtOnCompile := true,
     majorVersion := 0
   )
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+
 
 inConfig(IntegrationTest)(org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings)
 
