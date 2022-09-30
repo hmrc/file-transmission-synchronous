@@ -67,7 +67,7 @@ object EncodeFileBase64
         var fileSize: Int = 0
         var previous: ByteBuffer = ByteBuffer.allocate(0)
 
-        final override def preStart: Unit =
+        final override def preStart(): Unit =
           setKeepGoing(true)
 
         setHandler(

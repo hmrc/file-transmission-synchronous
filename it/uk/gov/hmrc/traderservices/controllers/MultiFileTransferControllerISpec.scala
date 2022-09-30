@@ -287,7 +287,7 @@ class MultiFileTransferControllerISpec
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when transfer of a single file $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -333,13 +333,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleDataTransferSuccessWithoutCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when transfer of a single data $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -385,13 +384,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleFileTransferSuccessWithCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -426,13 +424,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testSingleDataTransferSuccessWithCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single data $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -467,12 +464,11 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testMultipleFilesTransferWithoutCallback(
     applicationName: String,
     files: Seq[(String, Option[Array[Byte]], Int)]
-  ) {
+  ): Unit =
     s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
       files
     ) {
@@ -557,12 +553,11 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testMultipleFilesTransferWithCallback(
     applicationName: String,
     files: Seq[(String, Option[Array[Byte]], Int)]
-  ) {
+  ): Unit =
     s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
       files
     ) {
@@ -641,9 +636,8 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
-  def testFileTransferBadRequest(description: String, fileTransferRequest: MultiFileTransferRequest) {
+  def testFileTransferBadRequest(description: String, fileTransferRequest: MultiFileTransferRequest): Unit =
     s"return 400 when processing $description" in new SingleFileTransferTest(
       fileTransferRequest.files.head.fileName,
       Some(oneByteArray)
@@ -663,9 +657,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
-  def testSingleFileUploadFailureWithoutCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testSingleFileUploadFailureWithoutCallback(
+    fileName: String,
+    status: Int,
+    bytesOpt: Option[Array[Byte]] = None
+  ): Unit =
     s"return 201 when uploading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -712,9 +709,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
-  def testSingleFileUploadFailureWithCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testSingleFileUploadFailureWithCallback(
+    fileName: String,
+    status: Int,
+    bytesOpt: Option[Array[Byte]] = None
+  ): Unit =
     s"return 202 when uploading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -749,13 +749,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testSingleFileDownloadFailureWithoutCallback(
     fileName: String,
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when downloading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -802,13 +801,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleFileDownloadFailureWithCallback(
     fileName: String,
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when downloading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -844,9 +842,8 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
-  def testSingleFileDownloadFaultWithoutCallback(fileName: String, status: Int, fault: Fault) {
+  def testSingleFileDownloadFaultWithoutCallback(fileName: String, status: Int, fault: Fault): Unit =
     s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new SingleFileTransferTest(
       fileName
     ) {
@@ -880,14 +877,13 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testCallbackFailure(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None,
     callbackStatus: Int
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails with $callbackStatus" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -922,14 +918,13 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, if (Retry.shouldRetry(callbackStatus)) 3 else 1)
     }
-  }
 
   def testCallbackFault(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None,
     callbackFault: Fault
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails because of $callbackFault" in new SingleFileTransferTest(
       fileName,
       bytesOpt
@@ -964,6 +959,5 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
 }

@@ -121,7 +121,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString()
+        val conversationId = java.util.UUID.randomUUID().toString
 
         val jsonBodyWritable =
           BodyWritable
@@ -176,7 +176,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
     }
   }
 
-  def testFileTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
       bytesOpt
@@ -205,9 +205,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHasHappened(1)
     }
-  }
 
-  def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None) {
+  def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring data as $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
       bytesOpt
@@ -236,7 +235,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHaveNotHappen()
       verifyFileUploadHasHappened(1)
     }
-  }
 
   def testFileTransferBadRequest(description: String, fileTransferRequest: FileTransferRequest) {
     s"return 400 when processing $description" in new FileTransferTest(
@@ -259,7 +257,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
     }
   }
 
-  def testFileUploadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileUploadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 500 when uploading $fileName fails because of $status" in new FileTransferTest(fileName, bytesOpt) {
       givenAuthorised()
       val fileUrl =
@@ -286,9 +284,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHasHappened(1)
     }
-  }
 
-  def testFileDownloadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileDownloadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 500 when downloading $fileName fails because of $status" in new FileTransferTest(fileName, bytesOpt) {
       givenAuthorised()
       val fileUrl =
@@ -315,9 +312,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHaveNotHappen()
     }
-  }
 
-  def testFileDownloadFault(fileName: String, status: Int, fault: Fault) {
+  def testFileDownloadFault(fileName: String, status: Int, fault: Fault): Unit =
     s"return 500 when downloading $fileName fails because of $status with $fault" in new FileTransferTest(fileName) {
       givenAuthorised()
       val fileUrl =
@@ -344,6 +340,5 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyAuthorisationHasHappened()
       verifyFileUploadHaveNotHappen()
     }
-  }
 
 }

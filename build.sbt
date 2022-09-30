@@ -16,28 +16,34 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "5.24.0",
-  "org.typelevel"                %% "cats-core"                 % "2.7.0",
+  "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "7.4.0",
+  "org.typelevel"                %% "cats-core"                 % "2.8.0",
   "com.github.robtimus"           % "data-url"                  % "2.0",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.13.1"
+  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.14.0-rc1"
 )
 
 def testDeps(scope: String) =
   Seq(
-    "org.scalatest"       %% "scalatest"    % "3.2.11"  % scope,
+    "org.scalatest"       %% "scalatest"    % "3.2.13"  % scope,
     "com.vladsch.flexmark" % "flexmark-all" % "0.62.2" % scope
   )
 
 lazy val itDeps = Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % "it",
-  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.32.0" % "it"
+  "com.github.tomakehurst"  % "wiremock-jre8"      % "2.33.2" % "it"
 )
 
 lazy val root = (project in file("."))
   .settings(
+    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
+    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
+  )
+  .settings(
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.15",
+    scalaVersion := "2.13.8",
+    scalacOptions += "-Wconf:src=routes/.*:s",
+    scalacOptions += "-Wconf:cat=unused-imports&src=html/.*:s",
     PlayKeys.playDefaultPort := 10003,
     libraryDependencies ++= compileDeps ++ testDeps("test") ++ testDeps("it") ++ itDeps,
     publishingSettings,
