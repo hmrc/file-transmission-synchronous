@@ -17,7 +17,6 @@
 package uk.gov.hmrc.traderservices.support
 
 import java.nio.charset.Charset
-
 import akka.stream.Materializer
 import akka.util.ByteString
 import org.scalatest.OptionValues
@@ -34,7 +33,7 @@ trait UnitSpec extends AnyWordSpec with Matchers with OptionValues {
   import scala.concurrent.duration._
   import scala.concurrent.{Await, Future}
 
-  implicit val defaultTimeout: FiniteDuration = 5 seconds
+  implicit val defaultTimeout: FiniteDuration = 5.seconds
 
   implicit def extractAwait[A](future: Future[A]): A = await[A](future)
 
