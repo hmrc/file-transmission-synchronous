@@ -28,16 +28,19 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import play.api.libs.json.JsObject
 
-/**
-  * An Actor responsible for orchestrating transmission of files.
+/** An Actor responsible for orchestrating transmission of files.
   *
-  * @param conversationId unique conversation ID of this transfer batch
+  * @param conversationId
+  *   unique conversation ID of this transfer batch
   * @param caseReferenceNumber
   * @param applicationName
   * @param requestId
-  * @param transfer function to call to transfer a single file
-  * @param audit function to call to audit result of transmission
-  * @param callback function to call to after transmission
+  * @param transfer
+  *   function to call to transfer a single file
+  * @param audit
+  *   function to call to audit result of transmission
+  * @param callback
+  *   function to call to after transmission
   */
 class FileTransferActor(
   conversationId: String,
@@ -67,9 +70,8 @@ class FileTransferActor(
       startTimestamp = System.nanoTime()
       clientRef = sender()
       files
-        .map {
-          case (file, index) =>
-            TransferSingleFile(file, index, batchSize, 0)
+        .map { case (file, index) =>
+          TransferSingleFile(file, index, batchSize, 0)
         }
         .foreach(request => self ! request)
       context.system.scheduler
@@ -216,14 +218,14 @@ class FileTransferActor(
         if (completed)
           Logger(getClass).info(
             s"Transferred ${results.size} out of $batchSize files, it was ${results
-              .count(_.success)} successes and ${results.count(f => !f.success)} failures, total duration was $totalDurationMillis ms."
+                .count(_.success)} successes and ${results.count(f => !f.success)} failures, total duration was $totalDurationMillis ms."
           )
         else
           Logger(getClass).error(
             s"Timeout, transferred ${if (results.nonEmpty) "none"
-            else s"only ${results.size}"} out of $batchSize files, ${if (results.nonEmpty) s"it was ${results
-              .count(_.success)} successes and ${results.count(f => !f.success)} failures.}, total duration was $totalDurationMillis ms."
-            else ""}"
+              else s"only ${results.size}"} out of $batchSize files, ${if (results.nonEmpty) s"it was ${results
+                  .count(_.success)} successes and ${results.count(f => !f.success)} failures.}, total duration was $totalDurationMillis ms."
+              else ""}"
           )
       } else
         context.system.scheduler

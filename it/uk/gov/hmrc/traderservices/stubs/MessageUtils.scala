@@ -10,11 +10,12 @@ object MessageUtils {
 
   private val chunkSize: Int = 2400
 
-  /**
-    * Reads byte stream, wraps as Base64 and calculates SHA-256 checksum.
+  /** Reads byte stream, wraps as Base64 and calculates SHA-256 checksum.
     *
-    * @param io input stream
-    * @return (source bytes, base64 encoded message, checkum, length)
+    * @param io
+    *   input stream
+    * @return
+    *   (source bytes, base64 encoded message, checkum, length)
     */
   final def read(io: InputStream): (Array[Byte], String, String, Int) = {
     val digest = MessageDigest.getInstance("SHA-256")

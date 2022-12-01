@@ -354,9 +354,9 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |}],
          |"metadata":{"foo":{"bar":1},"zoo":"zar"}
          |${callbackUrlOpt
-        .map(callbackUrl => s"""
-         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
-        .getOrElse("")}}""".stripMargin
+          .map(callbackUrl => s"""
+                                 |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
+          .getOrElse("")}}""".stripMargin
 
     def jsonDataPayload(caseReferenceNumber: String, applicationName: String, callbackUrlOpt: Option[String]) =
       s"""{
@@ -373,9 +373,9 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |}],
          |"metadata":{"foo":{"bar":1},"zoo":"zar"}
          |${callbackUrlOpt
-        .map(callbackUrl => s"""
-         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
-        .getOrElse("")}}""".stripMargin
+          .map(callbackUrl => s"""
+                                 |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
+          .getOrElse("")}}""".stripMargin
   }
 
   case class TestFileTransfer(
@@ -397,44 +397,43 @@ trait MultiFileTransferStubs extends FileTransferStubs {
 
     val conversationId = ju.UUID.randomUUID().toString()
 
-    val testFileTransfers: Seq[TestFileTransfer] = files.map {
-      case (fileName, bytesOpt, status) =>
-        val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
-          case Some(bytes) =>
-            MessageUtils.read(new ByteArrayInputStream(bytes))
+    val testFileTransfers: Seq[TestFileTransfer] = files.map { case (fileName, bytesOpt, status) =>
+      val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
+        case Some(bytes) =>
+          MessageUtils.read(new ByteArrayInputStream(bytes))
 
-          case None =>
-            load(s"/$fileName")
-        }
+        case None =>
+          load(s"/$fileName")
+      }
 
-        val upscanReference = fileName.reverse
-        val correlationId = ju.UUID.randomUUID().toString()
+      val upscanReference = fileName.reverse
+      val correlationId = ju.UUID.randomUUID().toString()
 
-        val xmlMetadataHeader = FileTransferMetadataHeader(
-          caseReferenceNumber = "Risk-123",
-          applicationName = "Route1",
-          correlationId = correlationId,
-          conversationId = conversationId,
-          sourceFileName = fileName,
-          sourceFileMimeType = "image/jpeg",
-          fileSize = fileSize,
-          checksum = checksum,
-          batchSize = 1,
-          batchCount = 1
-        ).toXmlString
+      val xmlMetadataHeader = FileTransferMetadataHeader(
+        caseReferenceNumber = "Risk-123",
+        applicationName = "Route1",
+        correlationId = correlationId,
+        conversationId = conversationId,
+        sourceFileName = fileName,
+        sourceFileMimeType = "image/jpeg",
+        fileSize = fileSize,
+        checksum = checksum,
+        batchSize = 1,
+        batchCount = 1
+      ).toXmlString
 
-        TestFileTransfer(
-          fileName,
-          upscanReference,
-          bytes,
-          base64Content,
-          checksum,
-          fileSize,
-          xmlMetadataHeader,
-          correlationId,
-          status,
-          "image/jpeg"
-        )
+      TestFileTransfer(
+        fileName,
+        upscanReference,
+        bytes,
+        base64Content,
+        checksum,
+        fileSize,
+        xmlMetadataHeader,
+        correlationId,
+        status,
+        "image/jpeg"
+      )
     }
 
     def jsonPayload(caseReferenceNumber: String, applicationName: String, callbackUrlOpt: Option[String]) =
@@ -443,7 +442,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |"caseReferenceNumber":"$caseReferenceNumber",
          |"applicationName":"$applicationName",
          |"files":[${testFileTransfers
-        .map(f => s"""{
+          .map(f => s"""{
          |  "upscanReference":"${f.upscanReference}",
          |  "downloadUrl":"$wireMockBaseUrlAsString${fileUrl(f)}",
          |  "fileName":"${f.fileName}",
@@ -451,12 +450,12 @@ trait MultiFileTransferStubs extends FileTransferStubs {
          |  "fileSize": ${f.fileSize},
          |  "checksum":"${f.checksum}"
          |}""")
-        .mkString(",")}],
+          .mkString(",")}],
          |"metadata":{"foo":{"bar":1},"zoo":"zar"}
          |${callbackUrlOpt
-        .map(callbackUrl => s"""
-         |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
-        .getOrElse("")}}""".stripMargin
+          .map(callbackUrl => s"""
+                                 |,"callbackUrl":"$wireMockBaseUrlAsString$callbackUrl"""".stripMargin)
+          .getOrElse("")}}""".stripMargin
   }
 
   val exampleSingleFileRequest = MultiFileTransferRequest(

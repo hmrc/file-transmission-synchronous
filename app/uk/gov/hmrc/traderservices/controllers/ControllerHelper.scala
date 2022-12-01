@@ -43,8 +43,8 @@ trait ControllerHelper {
     BodyParser("parseTolerantTextUtf8") { _ =>
       val decodeAsUtf8: Sink[ByteString, Future[Either[Result, String]]] =
         Sink
-          .fold[Either[Result, String], ByteString](Right("")) {
-            case (a, b) => a.map(_ + b.decodeString(StandardCharsets.UTF_8))
+          .fold[Either[Result, String], ByteString](Right("")) { case (a, b) =>
+            a.map(_ + b.decodeString(StandardCharsets.UTF_8))
           }
       Accumulator(decodeAsUtf8)
     }
@@ -77,11 +77,10 @@ trait ControllerHelper {
         handleError(
           "ERROR_JSON",
           s"Invalid payload: Parsing failed due to ${errs
-            .map {
-              case (path, errors) =>
+              .map { case (path, errors) =>
                 s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
-            }
-            .mkString(", and ")}."
+              }
+              .mkString(", and ")}."
         )
 
       case Failure(e) =>

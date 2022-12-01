@@ -63,13 +63,12 @@ case class FileTransferMetadataHeader(
        |<mdg:compressed>false</mdg:compressed>
        |<mdg:encrypted>false</mdg:encrypted>
        |<mdg:properties>
-       |${properties.map {
-      case (key, value) =>
+       |${properties.map { case (key, value) =>
         s"""<mdg:property>
-       |<mdg:name>$key</mdg:name>
-       |<mdg:value>$value</mdg:value>
-       |</mdg:property>""".stripMargin
-    }.mkString}
+           |<mdg:name>$key</mdg:name>
+           |<mdg:value>$value</mdg:value>
+           |</mdg:property>""".stripMargin
+      }.mkString}
        |</mdg:properties>
        |<mdg:sourceLocation>$sourceLocation</mdg:sourceLocation>
        |<mdg:sourceFileName>$sourceFileName</mdg:sourceFileName>

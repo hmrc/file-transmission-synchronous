@@ -39,8 +39,7 @@ import play.api.libs.json.Json
 import akka.util.ByteString
 import java.nio.charset.StandardCharsets
 
-/**
-  * A Flow modelling callback request.
+/** A Flow modelling callback request.
   */
 trait MultiFileTransferCallbackFlow {
 
@@ -103,8 +102,8 @@ trait MultiFileTransferCallbackFlow {
     Source
       .single(MultiFileTransferCallbackRequest(callbackUrl, result))
       .via(callbackFlow)
-      .runFold[Either[(String, Boolean), Unit]](Right(())) {
-        case (_, (_, result)) => result
+      .runFold[Either[(String, Boolean), Unit]](Right(())) { case (_, (_, result)) =>
+        result
       }
 
 }
