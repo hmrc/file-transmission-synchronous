@@ -37,9 +37,7 @@ import play.api.Logger
 
 case class FileSizeAndChecksum(fileSize: Int, checkumSHA256: String)
 
-/**
-  * Custom Akka Stream stage encoding stream as base64
-  * and calculating size and SHA-256 checksum.
+/** Custom Akka Stream stage encoding stream as base64 and calculating size and SHA-256 checksum.
   */
 object EncodeFileBase64
     extends GraphStageWithMaterializedValue[FlowShape[ByteString, ByteString], Future[
@@ -90,7 +88,7 @@ object EncodeFileBase64
                 )
 
             private def encodeAndPush(input: ByteString): Unit = {
-              val bytes = (if (previous.remaining > 0) (ByteString(previous) ++ input) else input).toByteBuffer
+              val bytes = (if (previous.remaining > 0) ByteString(previous) ++ input else input).toByteBuffer
               val length = bytes.limit()
               val chunkLength = if (length < 3) length else (length / 3) * 3
               fileSize = fileSize + chunkLength
@@ -108,7 +106,7 @@ object EncodeFileBase64
                 val checksum = convertBytesToHex(digest.digest())
                 Logger(getClass).info(
                   s"Stream encoding success, size $fileSize bytes, SHA-256 checksum $checksum, time ${(System
-                    .nanoTime() - t0) / 10e6} ms."
+                      .nanoTime() - t0) / 10e6} ms."
                 )
                 promise.complete(
                   Success(FileSizeAndChecksum(fileSize, checksum))

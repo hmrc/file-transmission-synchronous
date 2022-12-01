@@ -30,8 +30,8 @@ trait JsonMatchers {
                 MatchResult(
                   false,
                   s"JSON should have property `$name` of type ${classTag.runtimeClass.getSimpleName}, but had only ${obj.fields
-                    .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
-                    .mkString(", ")}",
+                      .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
+                      .mkString(", ")}",
                   ""
                 )
             }
@@ -58,8 +58,8 @@ trait JsonMatchers {
                 MatchResult(
                   false,
                   s"JSON should have array property `$name` of item type ${classTag.runtimeClass.getSimpleName}, but had only ${obj.fields
-                    .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
-                    .mkString(", ")}",
+                      .map(f => s"${f._1}:${f._2.getClass.getSimpleName}")
+                      .mkString(", ")}",
                   ""
                 )
             }
