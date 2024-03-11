@@ -1,26 +1,18 @@
 package uk.gov.hmrc.traderservices.controllers
 
-import org.apache.pekko.util.ByteString
 import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
-import play.api.libs.json.Json
-import play.api.libs.ws.BodyWritable
-import play.api.libs.ws.InMemoryBody
+import play.api.libs.json.{JsString, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.traderservices.models.FileTransferResult
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
-import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
+import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.JsonMatchers
-import uk.gov.hmrc.traderservices.support.ServerBaseISpec
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
 
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.UUID
-import play.api.libs.json.JsString
-import uk.gov.hmrc.http.HeaderNames
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -227,22 +219,21 @@ class MultiFileTransferControllerISpec
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString()
+        val conversationId = java.util.UUID.randomUUID().toString
 
-        val jsonBodyWritable =
-          BodyWritable
-            .apply[String](s => InMemoryBody(ByteString.fromString(s, StandardCharsets.UTF_8)), "application/json")
+        val payload = Json.obj(
+          "conversationId"      -> conversationId,
+          "caseReferenceNumber" -> "Risk-123",
+          "applicationName"     -> "Route1",
+          "upscanReference"     -> "XYZ0123456789",
+          "fileName"            -> "foo",
+          "fileMimeType"        -> "image/"
+        )
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
           .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
-          .post(s"""{
-                           |"conversationId":"$conversationId",
-                           |"caseReferenceNumber":"Risk-123",
-                           |"applicationName":"Route1",
-                           |"upscanReference":"XYZ0123456789",
-                           |"fileName":"foo",
-                           |"fileMimeType":"image/""")(jsonBodyWritable)
+          .post(payload)
           .futureValue
 
         result.status shouldBe 400

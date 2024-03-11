@@ -1,12 +1,11 @@
 package uk.gov.hmrc.traderservices.support
 
 import com.codahale.metrics.MetricRegistry
-import com.kenshoo.play.metrics.Metrics
 import org.scalatest.Suite
-import play.api.Application
-
-import scala.collection.JavaConverters
 import org.scalatest.matchers.should.Matchers
+import play.api.Application
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
+import scala.jdk.CollectionConverters._
 
 trait MetricsTestSupport {
   self: Suite with Matchers =>
@@ -17,11 +16,7 @@ trait MetricsTestSupport {
 
   def givenCleanMetricRegistry(): Unit = {
     val registry = app.injector.instanceOf[Metrics].defaultRegistry
-    for (
-      metric <- JavaConverters
-                  .asScalaIterator[String](registry.getMetrics.keySet().iterator())
-    )
-      registry.remove(metric)
+    registry.getMetrics.keySet().asScala.foreach(metric => registry.remove(metric))
     metricsRegistry = registry
   }
 
