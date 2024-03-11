@@ -13,7 +13,7 @@ import play.api.libs.ws.BodyWritable
 
 import java.nio.charset.StandardCharsets
 import play.api.libs.ws.InMemoryBody
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 

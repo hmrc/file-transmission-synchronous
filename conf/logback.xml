@@ -62,7 +62,7 @@
 
     <logger name="uk.gov.hmrc.traderservices.repository" level="ERROR"/>
 
-    <logger name="akka" level="ERROR"/>
+    <logger name="pekko" level="ERROR"/>
 
     <logger name="reactivemongo" level="ERROR"/>
 

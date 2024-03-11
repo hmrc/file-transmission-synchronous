@@ -24,7 +24,7 @@ import com.google.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import com.google.inject.name.Named
 import scala.util.matching.Regex
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.hooks.HttpHook
 import com.typesafe.config.Config

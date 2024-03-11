@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.actor.Actor
-import akka.actor.ActorRef
-import akka.pattern.pipe
+import org.apache.pekko.actor.Actor
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.pipe
 import play.api.Logger
 import uk.gov.hmrc.traderservices.models._
 
@@ -163,12 +163,12 @@ class FileTransferActor(
                   fileTransferRequest.fileName,
                   fileTransferRequest.fileMimeType,
                   fileTransferRequest.fileSize.getOrElse(0),
-                  false,
+                  success = false,
                   0,
                   LocalDateTime.now,
                   fileTransferRequest.correlationId.getOrElse(UNKNOWN),
                   fileTransferRequest.durationMillis,
-                  Option(s"${error.getClass().getName()}: ${error.getMessage()}")
+                  Option(s"${error.getClass.getName}: ${error.getMessage}")
                 )
               )
           },
@@ -183,8 +183,8 @@ class FileTransferActor(
       context.system.scheduler
         .scheduleOnce(unitInterval * retryMessage.attempt * 10, self, retryMessage)
 
-    case akka.actor.Status.Failure(error) =>
-      Logger(getClass).error(error.toString())
+    case org.apache.pekko.actor.Status.Failure(error) =>
+      Logger(getClass).error(error.toString)
       results = results :+ FileTransferResult(
         upscanReference = UNKNOWN,
         checksum = UNKNOWN,
@@ -196,7 +196,7 @@ class FileTransferActor(
         LocalDateTime.now(),
         UNKNOWN,
         0,
-        error = Some(error.toString())
+        error = Some(error.toString)
       )
 
     case CheckComplete(batchSize) =>

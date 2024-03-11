@@ -24,16 +24,16 @@ import uk.gov.hmrc.traderservices.wiring.AppConfig
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.traderservices.connectors.MicroserviceAuthConnector
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import java.util.UUID
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import play.api.Logger
 import uk.gov.hmrc.traderservices.connectors.ApiError
 import play.api.libs.json.Json
-import akka.actor.ActorRef
-import akka.pattern.ask
-import akka.util.Timeout
-import akka.actor.Props
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
+import org.apache.pekko.actor.Props
 
 @Singleton
 class FileTransferController @Inject() (

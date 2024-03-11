@@ -30,9 +30,9 @@ import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import play.api.libs.json.Json
 import play.api.mvc.BodyParser
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import play.api.libs.streams.Accumulator
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.stream.scaladsl.Sink
 import java.nio.charset.StandardCharsets
 
 trait ControllerHelper {

@@ -1,6 +1,6 @@
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider

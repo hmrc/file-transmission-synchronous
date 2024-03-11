@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.stream.stage.GraphStageWithMaterializedValue
-import akka.stream.FlowShape
-import akka.util.ByteString
+import org.apache.pekko.stream.stage.GraphStageWithMaterializedValue
+import org.apache.pekko.stream.FlowShape
+import org.apache.pekko.util.ByteString
 import scala.concurrent.Future
-import akka.stream.Inlet
-import akka.stream.Outlet
-import akka.stream.stage.GraphStageLogic
-import akka.stream.Attributes
-import akka.stream.stage.OutHandler
-import akka.stream.stage.StageLogging
-import akka.stream.stage.InHandler
+import org.apache.pekko.stream.Inlet
+import org.apache.pekko.stream.Outlet
+import org.apache.pekko.stream.stage.GraphStageLogic
+import org.apache.pekko.stream.Attributes
+import org.apache.pekko.stream.stage.OutHandler
+import org.apache.pekko.stream.stage.StageLogging
+import org.apache.pekko.stream.stage.InHandler
 import scala.concurrent.Promise
 import java.util.Base64
 import scala.util.Failure
@@ -37,7 +37,7 @@ import play.api.Logger
 
 case class FileSizeAndChecksum(fileSize: Int, checkumSHA256: String)
 
-/** Custom Akka Stream stage encoding stream as base64 and calculating size and SHA-256 checksum.
+/** Custom Pekko Stream stage encoding stream as base64 and calculating size and SHA-256 checksum.
   */
 object EncodeFileBase64
     extends GraphStageWithMaterializedValue[FlowShape[ByteString, ByteString], Future[
