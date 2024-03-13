@@ -109,13 +109,13 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
       testFileDownloadFailure("test⫐1.jpeg", 404)
 
       testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
-      testFileDownloadFault("resources/test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
-      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
-      testFileDownloadFault("resources/test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
-      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
-      testFileDownloadFault("resources/test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
-      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
-      testFileDownloadFault("resources/test2.txt", 500, Fault.EMPTY_RESPONSE)
+      testFileDownloadFault("test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
+      testFileDownloadFault("test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
+      testFileDownloadFault("test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
+      testFileDownloadFault("test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
+      testFileDownloadFault("test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
+      testFileDownloadFault("test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
+      testFileDownloadFault("test2.txt", 500, Fault.EMPTY_RESPONSE)
 
       "return 400 when empty payload" in {
         givenAuthorised()

@@ -22,6 +22,7 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, InsufficientEnrolments}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, SessionKeys}
 import uk.gov.hmrc.traderservices.controllers.AuthActions
+import uk.gov.hmrc.traderservices.support.AppBaseISpecIT
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
 import scala.concurrent.Future
