@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.traderservices.models
 
-import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 import uk.gov.hmrc.traderservices.support.UnitSpec
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 
 class FileNameUtilsSpec extends UnitSpec {
 

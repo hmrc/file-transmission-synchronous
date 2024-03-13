@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.controllers
 
 import com.github.tomakehurst.wiremock.http.Fault
@@ -8,11 +24,11 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpecIT}
 
 import java.time.LocalDateTime
 
-class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with FileTransferStubs with JsonMatchers {
+class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs with FileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"
@@ -92,14 +108,14 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileDownloadFailure("logback.xml", 501)
       testFileDownloadFailure("test⫐1.jpeg", 404)
 
-      testFileDownloadFault("test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
-      testFileDownloadFault("test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
-      testFileDownloadFault("test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
-      testFileDownloadFault("test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
-      testFileDownloadFault("test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
-      testFileDownloadFault("test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
-      testFileDownloadFault("test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
-      testFileDownloadFault("test2.txt", 500, Fault.EMPTY_RESPONSE)
+      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
+      testFileDownloadFault("resources/test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
+      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
+      testFileDownloadFault("resources/test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
+      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
+      testFileDownloadFault("resources/test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
+      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
+      testFileDownloadFault("resources/test2.txt", 500, Fault.EMPTY_RESPONSE)
 
       "return 400 when empty payload" in {
         givenAuthorised()

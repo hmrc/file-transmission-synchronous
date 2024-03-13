@@ -28,7 +28,7 @@ import scala.language.implicitConversions
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 
-trait UnitSpec extends AnyWordSpec with Matchers with OptionValues {
+trait ITUnitSpec extends AnyWordSpec with Matchers with OptionValues {
 
   import scala.concurrent.duration._
   import scala.concurrent.{Await, Future}
