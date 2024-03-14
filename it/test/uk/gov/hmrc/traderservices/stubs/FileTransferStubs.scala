@@ -34,7 +34,6 @@ trait FileTransferStubs {
   me: WireMockSupport =>
 
   val FILE_TRANSFER_URL = "/cpr/filetransfer/caseevidence/v1"
-  val xmlVersionAndEncodingString = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
 
   def givenFileTransferSucceeds(
     caseReferenceNumber: String,
@@ -52,7 +51,7 @@ trait FileTransferStubs {
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
-    ).toXmlString.replaceFirst(xmlVersionAndEncodingString, "")
+    ).toXmlString
 
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -329,7 +328,7 @@ trait FileTransferStubs {
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
-    ).toXmlString.replaceFirst(xmlVersionAndEncodingString, "")
+    ).toXmlString
 
     val fileUrl: String
 
