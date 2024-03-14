@@ -19,6 +19,7 @@ package uk.gov.hmrc.traderservices.stubs
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.http.Fault
 import com.github.tomakehurst.wiremock.http.HttpStatus
+import org.xmlunit.diff.ComparisonType
 import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.support.WireMockSupport
@@ -33,6 +34,7 @@ trait FileTransferStubs {
   me: WireMockSupport =>
 
   val FILE_TRANSFER_URL = "/cpr/filetransfer/caseevidence/v1"
+  val xmlVersionAndEncodingString = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
 
   def givenFileTransferSucceeds(
     caseReferenceNumber: String,
@@ -50,7 +52,7 @@ trait FileTransferStubs {
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
-    ).toXmlString
+    ).toXmlString.replaceFirst(xmlVersionAndEncodingString, "")
 
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -210,7 +212,8 @@ trait FileTransferStubs {
     applicationName: String,
     caseReferenceNumber: String,
     delay: Int = 0
-  ): Unit =
+  ): Unit = {
+
     stubFor(
       post(urlEqualTo(FILE_TRANSFER_URL))
         .withHeader("x-correlation-id", matching("[A-Za-z0-9-]{36}"))
@@ -237,22 +240,23 @@ trait FileTransferStubs {
             .withFixedDelay(delay)
         )
     )
+  }
 
   def verifyFileDownloadHasHappened(fileName: String, times: Int) =
-    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}")))
 
   def verifyFileDownloadHasHappened(fileName: String, fault: Fault, times: Int) =
-    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}")))
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}/${fault.name()}")))
 
   def verifyFileDownloadHaveNotHappen(fileName: String) =
-    verify(0, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+    verify(0, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}")))
 
   def verifyFileDownloadHaveNotHappen() =
     verify(0, getRequestedFor(urlPathMatching("\\/bucket\\/.*")))
 
   def stubForFileDownload(status: Int, bytes: Array[Byte], fileName: String): String = {
 
-    val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}"
+    val url = s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}"
 
     stubFor(
       get(urlEqualTo(url))
@@ -268,7 +272,7 @@ trait FileTransferStubs {
   }
 
   def stubForFileDownload(status: Int, fileName: String, fault: Fault): String = {
-    val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}"
+    val url = s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}/${fault.name()}"
 
     stubFor(
       get(urlEqualTo(url))
@@ -325,7 +329,7 @@ trait FileTransferStubs {
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
-    ).toXmlString
+    ).toXmlString.replaceFirst(xmlVersionAndEncodingString, "")
 
     val fileUrl: String
 

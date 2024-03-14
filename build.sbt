@@ -21,18 +21,17 @@ lazy val compileDeps = Seq(
   "uk.gov.hmrc"                  %% "bootstrap-backend-play-30" % "8.4.0",
   "org.typelevel"                %% "cats-core"                 % "2.10.0",
   "com.github.robtimus"           % "data-url"                  % "2.0.1",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.17.0"
+  "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.14.0-rc1"
 )
 
 def testDeps(scope: String): Seq[ModuleID] =
   Seq(
-    "org.scalatest" %% "scalatest" % "3.2.17" % scope,
+    "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % "8.4.0" % scope,
     "com.vladsch.flexmark" % "flexmark-all" % "0.64.8" % scope
   )
 
 lazy val itDeps = Seq(
-  "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1"  % Test,
-  "com.github.tomakehurst"  % "wiremock-jre8"      % "3.0.1" % Test
+  "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % "8.4.0" % Test,
 )
 
 lazy val root = (project in file("."))
@@ -52,14 +51,13 @@ lazy val root = (project in file("."))
 
 
 lazy val it = project
-  .in(file("it"))
   .enablePlugins(PlayScala)
   .dependsOn(root % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(
-    DefaultBuildSettings.itSettings(),
+    DefaultBuildSettings.itSettings(true),
     libraryDependencies ++= (compileDeps ++ testDeps("test") ++ itDeps),
 //    Test / scalaSource := (ThisBuild / baseDirectory).value / "it" / "test" ,
-    Test / resourceDirectory := (ThisBuild / baseDirectory).value / "it" / "test" / "resources"
+    Test / resourceDirectories := Seq(baseDirectory.value / "conf", sourceDirectory.value / "resources")
   )
 
 def oneForkedJvmPerTest(tests: Seq[TestDefinition]) =

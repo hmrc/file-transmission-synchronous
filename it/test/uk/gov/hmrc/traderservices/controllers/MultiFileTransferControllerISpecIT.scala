@@ -74,8 +74,8 @@ class MultiFileTransferControllerISpecIT
         testSingleFileTransferSuccessWithoutCallback("app.routes", applicationName)
         testSingleFileTransferSuccessWithoutCallback("schema.json", applicationName)
         testSingleFileTransferSuccessWithoutCallback("logback.xml", applicationName)
-        testSingleFileTransferSuccessWithoutCallback("src/test/resources/test⫐1.jpeg", applicationName)
-        testSingleFileTransferSuccessWithoutCallback("src/test/resources/test2.txt", applicationName)
+        testSingleFileTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
+        testSingleFileTransferSuccessWithoutCallback("test2.txt", applicationName)
 
         testSingleDataTransferSuccessWithoutCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleDataTransferSuccessWithoutCallback("twoBytesArray", applicationName, Some(twoBytesArray))
@@ -84,8 +84,8 @@ class MultiFileTransferControllerISpecIT
         testSingleDataTransferSuccessWithoutCallback("app.routes", applicationName)
         testSingleDataTransferSuccessWithoutCallback("schema.json", applicationName)
         testSingleDataTransferSuccessWithoutCallback("logback.xml", applicationName)
-        testSingleDataTransferSuccessWithoutCallback("src/test/resources/test⫐1.jpeg", applicationName)
-        testSingleDataTransferSuccessWithoutCallback("src/test/resources/test2.txt", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("test⫐1.jpeg", applicationName)
+        testSingleDataTransferSuccessWithoutCallback("test2.txt", applicationName)
 
         testSingleFileTransferSuccessWithCallback("oneByteArray", applicationName, Some(oneByteArray))
         testSingleFileTransferSuccessWithCallback("twoBytesArray", applicationName, Some(twoBytesArray))
@@ -94,8 +94,8 @@ class MultiFileTransferControllerISpecIT
         testSingleFileTransferSuccessWithCallback("app.routes", applicationName)
         testSingleFileTransferSuccessWithCallback("schema.json", applicationName)
         testSingleFileTransferSuccessWithCallback("logback.xml", applicationName)
-        testSingleFileTransferSuccessWithCallback("src/test/resources/test⫐1.jpeg", applicationName)
-        testSingleFileTransferSuccessWithCallback("src/test/resources/test2.txt", applicationName)
+        testSingleFileTransferSuccessWithCallback("test⫐1.jpeg", applicationName)
+        testSingleFileTransferSuccessWithCallback("test2.txt", applicationName)
 
         testMultipleFilesTransferWithoutCallback(
           applicationName,
@@ -107,8 +107,8 @@ class MultiFileTransferControllerISpecIT
             ("app.routes", None, 202),
             ("schema.json", None, 202),
             ("logback.xml", None, 202),
-            ("src/test/resources/test⫐1.jpeg", None, 202),
-            ("src/test/resources/test2.txt", None, 202)
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
           )
         )
         testMultipleFilesTransferWithoutCallback(
@@ -121,8 +121,8 @@ class MultiFileTransferControllerISpecIT
             ("app.routes", None, 400),
             ("schema.json", None, 403),
             ("logback.xml", None, 500),
-            ("src/test/resources/test⫐1.jpeg", None, 599),
-            ("src/test/resources/test2.txt", None, 202)
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
           )
         )
 
@@ -136,8 +136,8 @@ class MultiFileTransferControllerISpecIT
             ("app.routes", None, 202),
             ("schema.json", None, 202),
             ("logback.xml", None, 202),
-            ("src/test/resources/test⫐1.jpeg", None, 202),
-            ("src/test/resources/test2.txt", None, 202)
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
           )
         )
         testMultipleFilesTransferWithCallback(
@@ -150,8 +150,8 @@ class MultiFileTransferControllerISpecIT
             ("app.routes", None, 400),
             ("schema.json", None, 403),
             ("logback.xml", None, 500),
-            ("src/test/resources/test⫐1.jpeg", None, 599),
-            ("src/test/resources/test2.txt", None, 202)
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
           )
         )
         testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 400)
@@ -177,9 +177,9 @@ class MultiFileTransferControllerISpecIT
       testSingleFileUploadFailureWithoutCallback("app.routes", 404)
       testSingleFileUploadFailureWithoutCallback("schema.json", 501)
       testSingleFileUploadFailureWithoutCallback("logback.xml", 409)
-      testSingleFileUploadFailureWithoutCallback("src/test/resources/test⫐1.jpeg", 403)
-      testSingleFileUploadFailureWithoutCallback("src/test/resources/test⫐1.jpeg", 499)
-      testSingleFileUploadFailureWithoutCallback("src/test/resources/test⫐1.jpeg", 429)
+      testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 403)
+      testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 499)
+      testSingleFileUploadFailureWithoutCallback("test⫐1.jpeg", 429)
 
       testSingleFileUploadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileUploadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -188,9 +188,9 @@ class MultiFileTransferControllerISpecIT
       testSingleFileUploadFailureWithCallback("app.routes", 404)
       testSingleFileUploadFailureWithCallback("schema.json", 501)
       testSingleFileUploadFailureWithCallback("logback.xml", 409)
-      testSingleFileUploadFailureWithCallback("src/test/resources/test⫐1.jpeg", 403)
-      testSingleFileUploadFailureWithCallback("src/test/resources/test⫐1.jpeg", 429)
-      testSingleFileUploadFailureWithCallback("src/test/resources/test⫐1.jpeg", 499)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 403)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 429)
+      testSingleFileUploadFailureWithCallback("test⫐1.jpeg", 499)
 
       testSingleFileDownloadFailureWithoutCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithoutCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -199,7 +199,7 @@ class MultiFileTransferControllerISpecIT
       testSingleFileDownloadFailureWithoutCallback("app.routes", 403)
       testSingleFileDownloadFailureWithoutCallback("schema.json", 500)
       testSingleFileDownloadFailureWithoutCallback("logback.xml", 501)
-      testSingleFileDownloadFailureWithoutCallback("src/test/resources/test⫐1.jpeg", 404)
+      testSingleFileDownloadFailureWithoutCallback("test⫐1.jpeg", 404)
 
       testSingleFileDownloadFailureWithCallback("oneByteArray", 404, Some(oneByteArray))
       testSingleFileDownloadFailureWithCallback("twoBytesArray", 404, Some(twoBytesArray))
@@ -208,16 +208,16 @@ class MultiFileTransferControllerISpecIT
       testSingleFileDownloadFailureWithCallback("app.routes", 403)
       testSingleFileDownloadFailureWithCallback("schema.json", 500)
       testSingleFileDownloadFailureWithCallback("logback.xml", 501)
-      testSingleFileDownloadFailureWithCallback("src/test/resources/test⫐1.jpeg", 404)
+      testSingleFileDownloadFailureWithCallback("test⫐1.jpeg", 404)
 
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
-      testSingleFileDownloadFaultWithoutCallback("src/test/resources/test2.txt", 500, Fault.EMPTY_RESPONSE)
+      testSingleFileDownloadFaultWithoutCallback("test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
+      testSingleFileDownloadFaultWithoutCallback("test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
+      testSingleFileDownloadFaultWithoutCallback("test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
+      testSingleFileDownloadFaultWithoutCallback("test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
+      testSingleFileDownloadFaultWithoutCallback("test⫐1.jpeg", 200, Fault.CONNECTION_RESET_BY_PEER)
+      testSingleFileDownloadFaultWithoutCallback("test2.txt", 500, Fault.CONNECTION_RESET_BY_PEER)
+      testSingleFileDownloadFaultWithoutCallback("test⫐1.jpeg", 200, Fault.EMPTY_RESPONSE)
+      testSingleFileDownloadFaultWithoutCallback("test2.txt", 500, Fault.EMPTY_RESPONSE)
 
       "return 400 when empty payload" in {
         givenAuthorised()

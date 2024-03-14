@@ -17,15 +17,17 @@
 package uk.gov.hmrc.traderservices.controllers
 
 import com.github.tomakehurst.wiremock.http.Fault
+import org.apache.pekko.util.ByteString
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.{BodyWritable, InMemoryBody, WSClient}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.stubs._
 import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpecIT}
 
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 
 class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs with FileTransferStubs with JsonMatchers {
@@ -108,7 +110,7 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
       testFileDownloadFailure("logback.xml", 501)
       testFileDownloadFailure("test⫐1.jpeg", 404)
 
-      testFileDownloadFault("resources/test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
+      testFileDownloadFault("test⫐1.jpeg", 200, Fault.RANDOM_DATA_THEN_CLOSE)
       testFileDownloadFault("test2.txt", 500, Fault.RANDOM_DATA_THEN_CLOSE)
       testFileDownloadFault("test⫐1.jpeg", 200, Fault.MALFORMED_RESPONSE_CHUNK)
       testFileDownloadFault("test2.txt", 500, Fault.MALFORMED_RESPONSE_CHUNK)
@@ -134,6 +136,10 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
         givenAuthorised()
         val conversationId = java.util.UUID.randomUUID().toString
 
+        val jsonBodyWritable =
+          BodyWritable
+            .apply[String](s => InMemoryBody(ByteString.fromString(s, StandardCharsets.UTF_8)), "application/json")
+
         val payload = Json.obj(
           "conversationId"      -> conversationId,
           "caseReferenceNumber" -> "Risk-123",
@@ -146,7 +152,13 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
         val result = wsClient
           .url(s"$url/transfer-file")
           .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
-          .post(payload)
+          .post(s"""{
+                   |"conversationId":"$conversationId",
+                   |"caseReferenceNumber":"Risk-123",
+                   |"applicationName":"Route1",
+                   |"upscanReference":"XYZ0123456789",
+                   |"fileName":"foo",
+                   |"fileMimeType":"image/""")(jsonBodyWritable)
           .futureValue
 
         result.status shouldBe 400
