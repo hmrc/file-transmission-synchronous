@@ -23,6 +23,7 @@ import org.xmlunit.diff.ComparisonType
 import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.support.WireMockSupport
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
@@ -34,6 +35,7 @@ trait FileTransferStubs {
   me: WireMockSupport =>
 
   val FILE_TRANSFER_URL = "/cpr/filetransfer/caseevidence/v1"
+  final val MAX_FILENAME_LENGTH = 255
 
   def givenFileTransferSucceeds(
     caseReferenceNumber: String,
@@ -46,7 +48,7 @@ trait FileTransferStubs {
       applicationName = "Route1",
       correlationId = "{{correlationId}}",
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, "{{correlationId}}"),
       sourceFileMimeType = "image/jpeg",
       checksum = checksum,
       batchSize = 1,
@@ -227,7 +229,8 @@ trait FileTransferStubs {
         .withHeader(
           "x-metadata",
           if (xmlMetadataHeader.isEmpty) containing("xml")
-          else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
+          else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}").exemptingComparisons(
+            ComparisonType.XML_VERSION, ComparisonType.XML_ENCODING)
         )
         .withHeader("referer", equalTo(applicationName))
         .withRequestBody(equalToJson(payload, true, true))
@@ -322,7 +325,7 @@ trait FileTransferStubs {
       applicationName = "Route1",
       correlationId = correlationId,
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
       sourceFileMimeType = "image/jpeg",
       fileSize = bytes.length,
       checksum = checksum,

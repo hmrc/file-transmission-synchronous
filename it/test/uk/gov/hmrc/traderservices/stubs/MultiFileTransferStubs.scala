@@ -26,12 +26,14 @@ import java.{util => ju}
 import play.api.libs.json.Json
 import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
 import uk.gov.hmrc.traderservices.models.FileTransferResult
+
 import java.time.LocalDateTime
 import play.api.libs.json.JsObject
 import play.api.libs.json.JsArray
 import play.api.libs.json.JsString
 import com.github.tomakehurst.wiremock.http.Fault
 import uk.gov.hmrc.traderservices.support.WireMockSupport
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -47,7 +49,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       applicationName = "Route1",
       correlationId = "{{correlationId}}",
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, "{{correlationId}}"),
       sourceFileMimeType = "image/jpeg",
       checksum = checksum,
       batchSize = 1,
@@ -345,7 +347,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       applicationName = "Route1",
       correlationId = correlationId,
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
       sourceFileMimeType = "image/jpeg",
       fileSize = bytes.length,
       checksum = checksum,
@@ -430,7 +432,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         applicationName = "Route1",
         correlationId = correlationId,
         conversationId = conversationId,
-        sourceFileName = fileName,
+        sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
         sourceFileMimeType = "image/jpeg",
         fileSize = fileSize,
         checksum = checksum,
