@@ -310,7 +310,7 @@ trait FileTransferStubs {
   def verifyTraderServicesFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-file")))
 
-  abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
+  abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName: String = "Route1") {
     val correlationId = ju.UUID.randomUUID().toString()
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -322,7 +322,7 @@ trait FileTransferStubs {
     }
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = "Risk-123",
-      applicationName = "Route1",
+      applicationName = applicationName,
       correlationId = correlationId,
       conversationId = conversationId,
       sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),

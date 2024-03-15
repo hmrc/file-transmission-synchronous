@@ -201,7 +201,8 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
   def testFileTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val fileUrl =
@@ -231,7 +232,8 @@ class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs wit
   def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring data as $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val fileUrl =

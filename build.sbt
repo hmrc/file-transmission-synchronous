@@ -53,8 +53,10 @@ lazy val root = (project in file("."))
 lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(root % "test->test") // the "test->test" allows reusing test code and test dependencies
-  .settings(
-    DefaultBuildSettings.itSettings(true),
-    libraryDependencies ++= (compileDeps ++ testDeps("test") ++ itDeps),
-    Test / resourceDirectories := Seq(baseDirectory.value / "conf", sourceDirectory.value / "resources")
-  )
+  .settings(DefaultBuildSettings.itSettings(true) ++ Seq(
+    Test / Keys.fork := false,
+    Test / javaOptions += "-Djava.locale.providers=CLDR,JRE",
+    Test / parallelExecution := false,
+    Test / resourceDirectories := Seq(baseDirectory.value / "conf", sourceDirectory.value / "resources"),
+    libraryDependencies ++= (compileDeps ++ testDeps("test") ++ itDeps)
+  ))
