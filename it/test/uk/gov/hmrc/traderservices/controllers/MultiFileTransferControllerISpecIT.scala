@@ -298,7 +298,8 @@ class MultiFileTransferControllerISpecIT
   ): Unit =
     s"return 201 when transfer of a single file $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val fileUrl =
@@ -478,7 +479,8 @@ class MultiFileTransferControllerISpecIT
     files: Seq[(String, Option[Array[Byte]], Int)]
   ): Unit =
     s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
       givenAuthorised()
       override def fileUrl(f: TestFileTransfer): String =
@@ -567,7 +569,8 @@ class MultiFileTransferControllerISpecIT
     files: Seq[(String, Option[Array[Byte]], Int)]
   ): Unit =
     s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
@@ -894,7 +897,8 @@ class MultiFileTransferControllerISpecIT
   ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails with $callbackStatus" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
@@ -935,7 +939,8 @@ class MultiFileTransferControllerISpecIT
   ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails because of $callbackFault" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"

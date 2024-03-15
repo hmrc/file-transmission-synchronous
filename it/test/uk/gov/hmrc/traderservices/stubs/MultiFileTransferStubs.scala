@@ -332,7 +332,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
   def verifyTraderServicesMultiFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-multiple-files")))
 
-  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
+  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName:String = "Route1") {
     val correlationId = ju.UUID.randomUUID().toString()
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -344,7 +344,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     }
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = "Risk-123",
-      applicationName = "Route1",
+      applicationName = applicationName,
       correlationId = correlationId,
       conversationId = conversationId,
       sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
@@ -409,7 +409,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileMimeType: String
   )
 
-  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)]) {
+  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)], applicationName:String = "Route1") {
 
     def fileUrl(f: TestFileTransfer): String
 
@@ -429,7 +429,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
 
       val xmlMetadataHeader = FileTransferMetadataHeader(
         caseReferenceNumber = "Risk-123",
-        applicationName = "Route1",
+        applicationName = applicationName,
         correlationId = correlationId,
         conversationId = conversationId,
         sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
