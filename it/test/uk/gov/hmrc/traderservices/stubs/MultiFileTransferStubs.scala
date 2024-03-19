@@ -17,23 +17,16 @@
 package uk.gov.hmrc.traderservices.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.traderservices.models.FileTransferData
-import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
-
-import java.io.ByteArrayInputStream
-import java.{util => ju}
-import play.api.libs.json.Json
-import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
-import uk.gov.hmrc.traderservices.models.FileTransferResult
-
-import java.time.LocalDateTime
-import play.api.libs.json.JsObject
-import play.api.libs.json.JsArray
-import play.api.libs.json.JsString
 import com.github.tomakehurst.wiremock.http.Fault
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.support.WireMockSupport
 import uk.gov.hmrc.traderservices.utilities.FileNameUtils
+
+import java.io.ByteArrayInputStream
+import java.time.LocalDateTime
+import java.{util => ju}
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -43,7 +36,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileName: String,
     conversationId: String
   ): String = {
-    val (bytes, base64Content, checksum, fileSize) = load(s"/$fileName")
+    val (bytes, base64Content, checksum, _) = load(s"/$fileName")
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = caseReferenceNumber,
       applicationName = "Route1",
@@ -51,10 +44,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       conversationId = conversationId,
       sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, "{{correlationId}}"),
       sourceFileMimeType = "image/jpeg",
-      checksum = checksum,
-      batchSize = 1,
-      batchCount = 1
-    ).toXmlString
+      checksum = checksum).toXmlString
 
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -111,7 +101,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           fileName,
           "image/jpeg",
           fileSize,
-          true,
+          success = true,
           202,
           LocalDateTime.now,
           "",
@@ -146,7 +136,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .-("totalDurationMillis")
     }
 
-  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int) =
+  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .withRequestBody(equalToJson(callbackPayload, true, true))
@@ -156,7 +146,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def stubForCallback(callbackUrl: String, status: Int) =
+  def stubForCallback(callbackUrl: String, status: Int): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .willReturn(
@@ -165,7 +155,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def stubForCallback(callbackUrl: String, fault: Fault) =
+  def stubForCallback(callbackUrl: String, fault: Fault): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .willReturn(
@@ -174,7 +164,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def verifyCallbackHasHappened(callbackUrl: String, times: Int) =
+  def verifyCallbackHasHappened(callbackUrl: String, times: Int): Unit =
     verify(
       times,
       postRequestedFor(urlEqualTo(callbackUrl))
