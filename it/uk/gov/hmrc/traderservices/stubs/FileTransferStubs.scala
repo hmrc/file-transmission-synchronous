@@ -301,7 +301,7 @@ trait FileTransferStubs {
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = "Risk-123",
       applicationName = "Route1",
-      correlationId = correlationId,
+      correlationId = "correlationId",
       conversationId = conversationId,
       sourceFileName = fileName,
       sourceFileMimeType = "image/jpeg",
