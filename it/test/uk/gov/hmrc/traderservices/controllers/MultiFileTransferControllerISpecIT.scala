@@ -22,7 +22,6 @@ import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.{JsString, Json}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.traderservices.controllers.Retry
 import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
@@ -300,6 +299,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -351,6 +351,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -402,6 +403,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -442,6 +444,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -480,6 +483,7 @@ class MultiFileTransferControllerISpecIT
     s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
       files
     ) {
+
       givenAuthorised()
       override def fileUrl(f: TestFileTransfer): String =
         if (f.status < 300)
@@ -569,6 +573,7 @@ class MultiFileTransferControllerISpecIT
     s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
       files
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
 
@@ -650,6 +655,7 @@ class MultiFileTransferControllerISpecIT
       fileTransferRequest.files.head.fileName,
       Some(oneByteArray)
     ) {
+
       givenAuthorised()
       val fileUrl = "https://test.com/123"
 
@@ -675,6 +681,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileUploadFails(
@@ -727,6 +734,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -767,6 +775,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFails(
@@ -819,6 +828,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -855,6 +865,7 @@ class MultiFileTransferControllerISpecIT
     s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new SingleFileTransferTest(
       fileName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFault(
@@ -896,6 +907,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -937,6 +949,7 @@ class MultiFileTransferControllerISpecIT
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
