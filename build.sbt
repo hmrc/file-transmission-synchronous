@@ -28,13 +28,9 @@ lazy val compileDeps = Seq(
 def testDeps(scope: String): Seq[ModuleID] =
   Seq(
     "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % bootstrapVersion % scope,
-    "com.vladsch.flexmark" % "flexmark-all" % "0.64.8" % scope
+    "com.vladsch.flexmark" % "flexmark-all" % "0.64.8" % scope,
+    "com.github.tomakehurst" % "wiremock"      % "3.0.1" % scope
   )
-
-lazy val itDeps = Seq(
-  "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % bootstrapVersion % Test,
-  "com.github.tomakehurst" % "wiremock"      % "3.0.1" % Test
-)
 
 lazy val root = (project in file("."))
   .settings(
@@ -43,7 +39,7 @@ lazy val root = (project in file("."))
     scalacOptions += "-Wconf:src=routes/.*:s",
     scalacOptions += "-Wconf:cat=unused-imports&src=html/.*:s",
     PlayKeys.playDefaultPort := 10003,
-    libraryDependencies ++= compileDeps ++ testDeps("test") ++ itDeps,
+    libraryDependencies ++= compileDeps ++ testDeps("test"),
     scoverageSettings,
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
     Compile / scalafmtOnCompile := true,
@@ -60,5 +56,5 @@ lazy val it = project
     Test / javaOptions += "-Djava.locale.providers=CLDR,JRE",
     Test / parallelExecution := false,
     Test / resourceDirectories := Seq(baseDirectory.value / "conf", sourceDirectory.value / "resources"),
-    libraryDependencies ++= (compileDeps ++ testDeps("test") ++ itDeps)
+    libraryDependencies ++= (compileDeps ++ testDeps("test"))
   ))
