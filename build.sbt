@@ -3,6 +3,8 @@ import uk.gov.hmrc.{DefaultBuildSettings, SbtAutoBuildPlugin}
 ThisBuild / scalaVersion := "2.13.12"
 ThisBuild / majorVersion := 0
 
+val bootstrapVersion = "8.5.0"
+
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
   Seq(
@@ -17,7 +19,7 @@ lazy val scoverageSettings = {
 
 lazy val compileDeps = Seq(
   ws,
-  "uk.gov.hmrc"                  %% "bootstrap-backend-play-30" % "8.4.0",
+  "uk.gov.hmrc"                  %% "bootstrap-backend-play-30" % bootstrapVersion,
   "org.typelevel"                %% "cats-core"                 % "2.10.0",
   "com.github.robtimus"           % "data-url"                  % "2.0.1",
   "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.17.0-rc1"
@@ -25,12 +27,12 @@ lazy val compileDeps = Seq(
 
 def testDeps(scope: String): Seq[ModuleID] =
   Seq(
-    "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % "8.5.0" % scope,
+    "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % bootstrapVersion % scope,
     "com.vladsch.flexmark" % "flexmark-all" % "0.64.8" % scope
   )
 
 lazy val itDeps = Seq(
-  "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % "8.5.0" % Test,
+  "uk.gov.hmrc"            %% s"bootstrap-test-play-30"        % bootstrapVersion % Test,
   "com.github.tomakehurst" % "wiremock"      % "3.0.1" % Test
 )
 
