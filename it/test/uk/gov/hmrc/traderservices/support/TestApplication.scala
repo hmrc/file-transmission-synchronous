@@ -19,7 +19,7 @@ package uk.gov.hmrc.traderservices.support
 import play.api.inject.guice.GuiceApplicationBuilder
 
 trait TestApplication {
-  _: BaseISpecIT =>
+  _: BaseISpec =>
 
   def defaultAppBuilder =
     new GuiceApplicationBuilder()

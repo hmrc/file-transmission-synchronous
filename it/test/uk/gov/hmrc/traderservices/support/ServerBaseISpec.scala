@@ -27,7 +27,7 @@ import javax.inject.Inject
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.traderservices.wiring.AppConfigImpl
 
-abstract class ServerBaseISpecIT extends BaseISpecIT with GuiceOneServerPerSuite with TestApplication with ScalaFutures {
+abstract class ServerBaseISpec extends BaseISpec with GuiceOneServerPerSuite with TestApplication with ScalaFutures {
 
   override implicit lazy val app: Application = defaultAppBuilder
     .bindings(

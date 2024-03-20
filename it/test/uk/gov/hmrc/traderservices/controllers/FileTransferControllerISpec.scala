@@ -25,12 +25,12 @@ import play.api.libs.ws.{BodyWritable, InMemoryBody, WSClient}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpecIT}
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
 
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 
-class FileTransferControllerISpecIT extends ServerBaseISpecIT with AuthStubs with FileTransferStubs with JsonMatchers {
+class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with FileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"

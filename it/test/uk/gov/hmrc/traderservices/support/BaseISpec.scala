@@ -27,7 +27,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import uk.gov.hmrc.traderservices.stubs.DataStreamStubs
 
-abstract class BaseISpecIT extends ITUnitSpec with WireMockSupport with DataStreamStubs with MetricsTestSupport {
+abstract class BaseISpec extends ITUnitSpec with WireMockSupport with DataStreamStubs with MetricsTestSupport {
 
   def app: Application
 

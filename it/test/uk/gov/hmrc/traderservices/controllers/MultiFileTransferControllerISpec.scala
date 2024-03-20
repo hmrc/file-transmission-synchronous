@@ -25,13 +25,13 @@ import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpecIT}
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
 
 import java.time.LocalDateTime
 import java.util.UUID
 
-class MultiFileTransferControllerISpecIT
-    extends ServerBaseISpecIT with AuthStubs with MultiFileTransferStubs with JsonMatchers {
+class MultiFileTransferControllerISpec
+    extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
 
   val url = s"http://localhost:$port"

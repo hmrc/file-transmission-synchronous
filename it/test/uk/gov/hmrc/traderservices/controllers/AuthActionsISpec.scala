@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.mvc.Results._
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, InsufficientEnrolments}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, SessionKeys}
-import uk.gov.hmrc.traderservices.controllers.AuthActions
-import uk.gov.hmrc.traderservices.support.AppBaseISpecIT
+import uk.gov.hmrc.traderservices.support.AppBaseISpec
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class AuthActionsISpecIT extends AppBaseISpecIT {
+class AuthActionsISpec extends AppBaseISpec {
 
   object TestController extends AuthActions {
 
