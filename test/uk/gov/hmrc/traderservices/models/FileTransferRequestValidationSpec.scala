@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.traderservices.services
 
-import uk.gov.hmrc.traderservices.support.UnitSpec
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import java.util.UUID
 import uk.gov.hmrc.traderservices.models.FileTransferData
 import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
 import play.api.libs.json.Json
 import play.api.libs.json.JsString
+import uk.gov.hmrc.traderservices.support.UnitSpec
 
 class FileTransferRequestValidationSpec extends UnitSpec {
 

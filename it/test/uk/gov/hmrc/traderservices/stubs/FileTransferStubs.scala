@@ -1,11 +1,27 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.http.Fault
-import com.github.tomakehurst.wiremock.http.HttpStatus
-import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
-import uk.gov.hmrc.traderservices.models.FileTransferRequest
+import com.github.tomakehurst.wiremock.http.{Fault, HttpStatus}
+import org.xmlunit.diff.ComparisonType
+import uk.gov.hmrc.traderservices.models.{FileTransferMetadataHeader, FileTransferRequest}
 import uk.gov.hmrc.traderservices.support.WireMockSupport
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
@@ -17,6 +33,7 @@ trait FileTransferStubs {
   me: WireMockSupport =>
 
   val FILE_TRANSFER_URL = "/cpr/filetransfer/caseevidence/v1"
+  final val MAX_FILENAME_LENGTH = 255
 
   def givenFileTransferSucceeds(
     caseReferenceNumber: String,
@@ -29,7 +46,7 @@ trait FileTransferStubs {
       applicationName = "Route1",
       correlationId = "{{correlationId}}",
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, "{{correlationId}}"),
       sourceFileMimeType = "image/jpeg",
       checksum = checksum,
       batchSize = 1,
@@ -194,7 +211,8 @@ trait FileTransferStubs {
     applicationName: String,
     caseReferenceNumber: String,
     delay: Int = 0
-  ): Unit =
+  ): Unit = {
+
     stubFor(
       post(urlEqualTo(FILE_TRANSFER_URL))
         .withHeader("x-correlation-id", matching("[A-Za-z0-9-]{36}"))
@@ -209,6 +227,9 @@ trait FileTransferStubs {
         .withHeader(
           "x-metadata",
           if (xmlMetadataHeader.isEmpty) containing("xml")
+          else if(xmlMetadataHeader.contains("correlationID"))
+            equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}").exemptingComparisons(
+            ComparisonType.XML_VERSION, ComparisonType.XML_ENCODING, ComparisonType.TEXT_VALUE)
           else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
         )
         .withHeader("referer", equalTo(applicationName))
@@ -221,22 +242,23 @@ trait FileTransferStubs {
             .withFixedDelay(delay)
         )
     )
+  }
 
   def verifyFileDownloadHasHappened(fileName: String, times: Int) =
-    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}")))
 
   def verifyFileDownloadHasHappened(fileName: String, fault: Fault, times: Int) =
-    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}")))
+    verify(times, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}/${fault.name()}")))
 
   def verifyFileDownloadHaveNotHappen(fileName: String) =
-    verify(0, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}")))
+    verify(0, getRequestedFor(urlEqualTo(s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}")))
 
   def verifyFileDownloadHaveNotHappen() =
     verify(0, getRequestedFor(urlPathMatching("\\/bucket\\/.*")))
 
   def stubForFileDownload(status: Int, bytes: Array[Byte], fileName: String): String = {
 
-    val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}"
+    val url = s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}"
 
     stubFor(
       get(urlEqualTo(url))
@@ -252,7 +274,7 @@ trait FileTransferStubs {
   }
 
   def stubForFileDownload(status: Int, fileName: String, fault: Fault): String = {
-    val url = s"/bucket/${URLEncoder.encode(fileName, "UTF-8")}/${fault.name()}"
+    val url = s"/bucket/${URLEncoder.encode(fileName, StandardCharsets.UTF_8)}/${fault.name()}"
 
     stubFor(
       get(urlEqualTo(url))
@@ -288,7 +310,7 @@ trait FileTransferStubs {
   def verifyTraderServicesFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-file")))
 
-  abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
+  abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName: String = "Route1") {
     val correlationId = ju.UUID.randomUUID().toString()
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -300,16 +322,16 @@ trait FileTransferStubs {
     }
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = "Risk-123",
-      applicationName = "Route1",
+      applicationName = applicationName,
       correlationId = correlationId,
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
       sourceFileMimeType = "image/jpeg",
       fileSize = bytes.length,
       checksum = checksum,
       batchSize = 1,
       batchCount = 1
-    ).toXmlString
+    ).toXmlString.replaceFirst("""<mdg:correlationID>*</mdg:correlationID>""", "")
 
     val fileUrl: String
 

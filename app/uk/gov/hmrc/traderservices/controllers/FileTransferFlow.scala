@@ -16,22 +16,22 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ContentTypes
-import akka.http.scaladsl.model.DateTime
-import akka.http.scaladsl.model.HttpEntity
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.headers.Date
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.stream.Materializer
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Keep
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model.ContentTypes
+import org.apache.pekko.http.scaladsl.model.DateTime
+import org.apache.pekko.http.scaladsl.model.HttpEntity
+import org.apache.pekko.http.scaladsl.model.HttpMethods
+import org.apache.pekko.http.scaladsl.model.HttpRequest
+import org.apache.pekko.http.scaladsl.model.HttpResponse
+import org.apache.pekko.http.scaladsl.model.headers.Date
+import org.apache.pekko.http.scaladsl.model.headers.RawHeader
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Flow
+import org.apache.pekko.stream.scaladsl.Keep
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logger
 import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.utilities.FileNameUtils
@@ -133,7 +133,7 @@ trait FileTransferFlow {
     )
   }
 
-  /** Akka Stream flow:
+  /** Pekko Stream flow:
     *   - requests downloading the file,
     *   - encodes file content stream using base64,
     *   - wraps base64 content in a json payload,
@@ -230,7 +230,7 @@ trait FileTransferFlow {
           )
       }
 
-  /** Akka Stream flow:
+  /** Pekko Stream flow:
     *   - encodes data content stream using base64,
     *   - wraps base64 content in a json payload,
     *   - forwards to the upstream endpoint.

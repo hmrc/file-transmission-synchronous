@@ -9,7 +9,7 @@
     <logger name="uk.gov.hmrc.play" level="INFO"/>
     <logger name="uk.gov.hmrc.traderservices" level="INFO"/>
     <logger name="application" level="WARN"/>
-    <logger name="akka.stream.Materializer" level="INFO"/>
+    <logger name="pekko.stream.Materializer" level="INFO"/>
 
     <root level="ERROR">
         <appender-ref ref="STDOUT"/>

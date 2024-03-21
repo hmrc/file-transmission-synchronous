@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.traderservices.wiring
 
-import java.util.regex.{Matcher, Pattern}
-import javax.inject.{Inject, Singleton}
-import akka.stream.Materializer
 import app.Routes
 import com.codahale.metrics.MetricRegistry
-import com.kenshoo.play.metrics.Metrics
+import org.apache.pekko.stream.Materializer
 import play.api.Logger
 import play.api.mvc.{Filter, RequestHeader, Result}
 import uk.gov.hmrc.http.{HttpException, UpstreamErrorResponse}
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
+import java.util.regex.{Matcher, Pattern}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.NANOSECONDS
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

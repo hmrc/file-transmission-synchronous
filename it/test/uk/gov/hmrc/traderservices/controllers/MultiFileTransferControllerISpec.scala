@@ -1,26 +1,34 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.util.ByteString
 import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
-import play.api.libs.json.Json
-import play.api.libs.ws.BodyWritable
-import play.api.libs.ws.InMemoryBody
+import play.api.libs.json.{JsString, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.traderservices.models.FileTransferResult
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
-import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
+import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.JsonMatchers
-import uk.gov.hmrc.traderservices.support.ServerBaseISpec
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
 
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.UUID
-import play.api.libs.json.JsString
-import uk.gov.hmrc.http.HeaderNames
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -227,22 +235,21 @@ class MultiFileTransferControllerISpec
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString()
+        val conversationId = java.util.UUID.randomUUID().toString
 
-        val jsonBodyWritable =
-          BodyWritable
-            .apply[String](s => InMemoryBody(ByteString.fromString(s, StandardCharsets.UTF_8)), "application/json")
+        val payload = Json.obj(
+          "conversationId"      -> conversationId,
+          "caseReferenceNumber" -> "Risk-123",
+          "applicationName"     -> "Route1",
+          "upscanReference"     -> "XYZ0123456789",
+          "fileName"            -> "foo",
+          "fileMimeType"        -> "image/"
+        )
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
           .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
-          .post(s"""{
-                           |"conversationId":"$conversationId",
-                           |"caseReferenceNumber":"Risk-123",
-                           |"applicationName":"Route1",
-                           |"upscanReference":"XYZ0123456789",
-                           |"fileName":"foo",
-                           |"fileMimeType":"image/""")(jsonBodyWritable)
+          .post(payload)
           .futureValue
 
         result.status shouldBe 400
@@ -290,8 +297,10 @@ class MultiFileTransferControllerISpec
   ): Unit =
     s"return 201 when transfer of a single file $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -343,6 +352,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -394,6 +404,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -434,6 +445,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -470,8 +482,10 @@ class MultiFileTransferControllerISpec
     files: Seq[(String, Option[Array[Byte]], Int)]
   ): Unit =
     s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
+
       givenAuthorised()
       override def fileUrl(f: TestFileTransfer): String =
         if (f.status < 300)
@@ -559,8 +573,10 @@ class MultiFileTransferControllerISpec
     files: Seq[(String, Option[Array[Byte]], Int)]
   ): Unit =
     s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
 
@@ -642,6 +658,7 @@ class MultiFileTransferControllerISpec
       fileTransferRequest.files.head.fileName,
       Some(oneByteArray)
     ) {
+
       givenAuthorised()
       val fileUrl = "https://test.com/123"
 
@@ -667,6 +684,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileUploadFails(
@@ -719,6 +737,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -759,6 +778,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFails(
@@ -811,6 +831,7 @@ class MultiFileTransferControllerISpec
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -847,6 +868,7 @@ class MultiFileTransferControllerISpec
     s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new SingleFileTransferTest(
       fileName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFault(
@@ -886,8 +908,10 @@ class MultiFileTransferControllerISpec
   ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails with $callbackStatus" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -927,8 +951,10 @@ class MultiFileTransferControllerISpec
   ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails because of $callbackFault" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =

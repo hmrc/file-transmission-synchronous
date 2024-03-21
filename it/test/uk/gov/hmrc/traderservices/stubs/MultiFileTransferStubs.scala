@@ -1,21 +1,32 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.traderservices.models.FileTransferData
-import uk.gov.hmrc.traderservices.models.FileTransferMetadataHeader
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
+import com.github.tomakehurst.wiremock.http.Fault
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.support.WireMockSupport
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 
 import java.io.ByteArrayInputStream
-import java.{util => ju}
-import play.api.libs.json.Json
-import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
-import uk.gov.hmrc.traderservices.models.FileTransferResult
 import java.time.LocalDateTime
-import play.api.libs.json.JsObject
-import play.api.libs.json.JsArray
-import play.api.libs.json.JsString
-import com.github.tomakehurst.wiremock.http.Fault
+import java.{util => ju}
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -25,18 +36,15 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileName: String,
     conversationId: String
   ): String = {
-    val (bytes, base64Content, checksum, fileSize) = load(s"/$fileName")
+    val (bytes, base64Content, checksum, _) = load(s"/$fileName")
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = caseReferenceNumber,
       applicationName = "Route1",
       correlationId = "{{correlationId}}",
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, "{{correlationId}}"),
       sourceFileMimeType = "image/jpeg",
-      checksum = checksum,
-      batchSize = 1,
-      batchCount = 1
-    ).toXmlString
+      checksum = checksum).toXmlString
 
     val downloadUrl =
       stubForFileDownload(200, bytes, fileName)
@@ -93,7 +101,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
           fileName,
           "image/jpeg",
           fileSize,
-          true,
+          success = true,
           202,
           LocalDateTime.now,
           "",
@@ -128,7 +136,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .-("totalDurationMillis")
     }
 
-  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int) =
+  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .withRequestBody(equalToJson(callbackPayload, true, true))
@@ -138,7 +146,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def stubForCallback(callbackUrl: String, status: Int) =
+  def stubForCallback(callbackUrl: String, status: Int): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .willReturn(
@@ -147,7 +155,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def stubForCallback(callbackUrl: String, fault: Fault) =
+  def stubForCallback(callbackUrl: String, fault: Fault): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .willReturn(
@@ -156,7 +164,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def verifyCallbackHasHappened(callbackUrl: String, times: Int) =
+  def verifyCallbackHasHappened(callbackUrl: String, times: Int): Unit =
     verify(
       times,
       postRequestedFor(urlEqualTo(callbackUrl))
@@ -314,7 +322,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
   def verifyTraderServicesMultiFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-multiple-files")))
 
-  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None) {
+  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName:String = "Route1") {
     val correlationId = ju.UUID.randomUUID().toString()
     val conversationId = ju.UUID.randomUUID().toString()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -326,10 +334,10 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     }
     val xmlMetadataHeader = FileTransferMetadataHeader(
       caseReferenceNumber = "Risk-123",
-      applicationName = "Route1",
+      applicationName = applicationName,
       correlationId = correlationId,
       conversationId = conversationId,
-      sourceFileName = fileName,
+      sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
       sourceFileMimeType = "image/jpeg",
       fileSize = bytes.length,
       checksum = checksum,
@@ -391,7 +399,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileMimeType: String
   )
 
-  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)]) {
+  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)], applicationName:String = "Route1") {
 
     def fileUrl(f: TestFileTransfer): String
 
@@ -411,10 +419,10 @@ trait MultiFileTransferStubs extends FileTransferStubs {
 
       val xmlMetadataHeader = FileTransferMetadataHeader(
         caseReferenceNumber = "Risk-123",
-        applicationName = "Route1",
+        applicationName = applicationName,
         correlationId = correlationId,
         conversationId = conversationId,
-        sourceFileName = fileName,
+        sourceFileName = FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileName, correlationId),
         sourceFileMimeType = "image/jpeg",
         fileSize = fileSize,
         checksum = checksum,

@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.traderservices.models
 
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.model.HttpRequest
+import org.apache.pekko.http.scaladsl.model.Uri
 import play.api.libs.json.Format
 import play.api.libs.json.Json
 
