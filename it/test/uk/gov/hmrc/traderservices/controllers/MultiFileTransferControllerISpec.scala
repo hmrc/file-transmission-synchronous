@@ -26,9 +26,9 @@ import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferR
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
 import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
+import uk.gov.hmrc.traderservices.utilities.RealUUIDGenerator
 
 import java.time.LocalDateTime
-import java.util.UUID
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -235,7 +235,7 @@ class MultiFileTransferControllerISpec
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString
+        val conversationId = RealUUIDGenerator.generate()
 
         val payload = Json.obj(
           "conversationId"      -> conversationId,
@@ -406,7 +406,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenMultiFileTransferSucceeds(
           "Risk-123",
@@ -447,7 +447,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenMultiFileTransferSucceeds(
           "Risk-123",
@@ -516,7 +516,7 @@ class MultiFileTransferControllerISpec
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
         .withHttpHeaders(
-          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          "x-correlation-id"        -> RealUUIDGenerator.generate(),
           HeaderNames.authorisation -> "Bearer dummy-it-token"
         )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
@@ -578,7 +578,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
 
       override def fileUrl(f: TestFileTransfer): String =
         if (f.status < 300)
@@ -636,7 +636,7 @@ class MultiFileTransferControllerISpec
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
         .withHttpHeaders(
-          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          "x-correlation-id"        -> RealUUIDGenerator.generate(),
           HeaderNames.authorisation -> "Bearer dummy-it-token"
         )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
@@ -739,7 +739,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenMultiFileUploadFails(
           status,
@@ -833,7 +833,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenFileDownloadFails(
           status,
@@ -913,7 +913,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenMultiFileTransferSucceeds(
           "Risk-123",
@@ -956,7 +956,7 @@ class MultiFileTransferControllerISpec
     ) {
 
       givenAuthorised()
-      val callbackUrl = s"/foo/${UUID.randomUUID()}"
+      val callbackUrl = s"/foo/${RealUUIDGenerator.generate()}"
       val fileUrl =
         givenMultiFileTransferSucceeds(
           "Risk-123",

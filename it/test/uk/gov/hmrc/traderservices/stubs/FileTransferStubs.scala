@@ -21,12 +21,11 @@ import com.github.tomakehurst.wiremock.http.{Fault, HttpStatus}
 import org.xmlunit.diff.ComparisonType
 import uk.gov.hmrc.traderservices.models.{FileTransferMetadataHeader, FileTransferRequest}
 import uk.gov.hmrc.traderservices.support.WireMockSupport
-import uk.gov.hmrc.traderservices.utilities.FileNameUtils
+import uk.gov.hmrc.traderservices.utilities.{FileNameUtils, RealUUIDGenerator, UUIDGenerator}
 
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.{util => ju}
 import scala.util.Try
 
 trait FileTransferStubs {
@@ -67,7 +66,9 @@ trait FileTransferStubs {
       checksum,
       xmlMetadataHeader,
       "Route1",
-      caseReferenceNumber
+      caseReferenceNumber,
+      correlationId = "{{correlationId}}",
+      conversationId = conversationId
     )
 
     downloadUrl
@@ -83,8 +84,9 @@ trait FileTransferStubs {
     fileSize: Int,
     xmlMetadataHeader: String
   ): String = {
-    val downloadUrl =
+    val downloadUrl = {
       stubForFileDownload(200, bytes, fileName)
+    }
 
     stubForFileUpload(
       202,
@@ -204,19 +206,21 @@ trait FileTransferStubs {
     verify(0, postRequestedFor(urlEqualTo(FILE_TRANSFER_URL)))
 
   def stubForFileUpload(
-    status: Int,
-    payload: String,
-    checksum: String,
-    xmlMetadataHeader: String,
-    applicationName: String,
-    caseReferenceNumber: String,
-    delay: Int = 0
+                         status: Int,
+                         payload: String,
+                         checksum: String,
+                         xmlMetadataHeader: String,
+                         applicationName: String,
+                         caseReferenceNumber: String,
+                         correlationId: String = "",
+                         conversationId: String = "",
+                         delay: Int = 0
   ): Unit = {
 
     stubFor(
       post(urlEqualTo(FILE_TRANSFER_URL))
-        .withHeader("x-correlation-id", matching("[A-Za-z0-9-]{36}"))
-        .withHeader("x-conversation-id", matching("[A-Za-z0-9-]{36}"))
+        .withHeader("x-correlation-id", equalTo(correlationId))
+        .withHeader("x-conversation-id", equalTo(conversationId))
         .withHeader("customprocesseshost", equalTo("Digital"))
         .withHeader("date", matching("[A-Za-z0-9,: ]{29}"))
         .withHeader("accept", equalTo("application/json"))
@@ -310,9 +314,12 @@ trait FileTransferStubs {
   def verifyTraderServicesFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-file")))
 
-  abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName: String = "Route1") {
-    val correlationId = ju.UUID.randomUUID().toString()
-    val conversationId = ju.UUID.randomUUID().toString()
+  abstract class FileTransferTest(fileName: String,
+                                  bytesOpt: Option[Array[Byte]] = None,
+                                  applicationName: String = "Route1",
+                                  uuidGenerator: UUIDGenerator =  RealUUIDGenerator) {
+    val correlationId = uuidGenerator.generate()
+    val conversationId = uuidGenerator.generate()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
         MessageUtils.read(new ByteArrayInputStream(bytes))

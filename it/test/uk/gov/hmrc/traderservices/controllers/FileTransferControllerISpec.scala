@@ -26,6 +26,7 @@ import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.stubs._
 import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
+import uk.gov.hmrc.traderservices.utilities.RealUUIDGenerator
 
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
@@ -134,7 +135,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString
+        val conversationId = RealUUIDGenerator.generate()
 
         val jsonBodyWritable =
           BodyWritable
@@ -202,7 +203,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
     s"return 202 when transferring $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
       bytesOpt,
-      applicationName
+      applicationName,
+      RealUUIDGenerator
     ) {
       givenAuthorised()
       val fileUrl =
@@ -233,7 +235,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
     s"return 202 when transferring data as $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
       bytesOpt,
-      applicationName
+      applicationName,
+      RealUUIDGenerator
     ) {
       givenAuthorised()
       val fileUrl =

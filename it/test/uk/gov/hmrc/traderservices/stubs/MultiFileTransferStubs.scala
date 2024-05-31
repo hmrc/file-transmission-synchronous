@@ -22,11 +22,10 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.support.WireMockSupport
-import uk.gov.hmrc.traderservices.utilities.FileNameUtils
+import uk.gov.hmrc.traderservices.utilities.{FileNameUtils, RealUUIDGenerator, UUIDGenerator}
 
 import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
-import java.{util => ju}
 
 trait MultiFileTransferStubs extends FileTransferStubs {
   me: WireMockSupport =>
@@ -197,7 +196,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       xmlMetadataHeader,
       applicationName,
       caseReferenceNumber,
-      delay
+      delay = delay
     )
 
     downloadUrl
@@ -230,7 +229,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       xmlMetadataHeader,
       applicationName,
       caseReferenceNumber,
-      delay
+      delay= delay
     )
 
     downloadUrl
@@ -322,9 +321,9 @@ trait MultiFileTransferStubs extends FileTransferStubs {
   def verifyTraderServicesMultiFileTransferHasHappened(times: Int = 1) =
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-multiple-files")))
 
-  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName:String = "Route1") {
-    val correlationId = ju.UUID.randomUUID().toString()
-    val conversationId = ju.UUID.randomUUID().toString()
+  abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName:String = "Route1", uuidGenerator: UUIDGenerator = RealUUIDGenerator) {
+    val correlationId = uuidGenerator.generate()
+    val conversationId = uuidGenerator.generate()
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
         MessageUtils.read(new ByteArrayInputStream(bytes))
@@ -399,11 +398,11 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     fileMimeType: String
   )
 
-  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)], applicationName:String = "Route1") {
+  abstract class MultiFileTransferTest(files: Seq[(String, Option[Array[Byte]], Int)], applicationName:String = "Route1", uuidGenerator: UUIDGenerator = RealUUIDGenerator) {
 
     def fileUrl(f: TestFileTransfer): String
 
-    val conversationId = ju.UUID.randomUUID().toString()
+    val conversationId = uuidGenerator.generate()
 
     val testFileTransfers: Seq[TestFileTransfer] = files.map { case (fileName, bytesOpt, status) =>
       val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -415,7 +414,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       }
 
       val upscanReference = fileName.reverse
-      val correlationId = ju.UUID.randomUUID().toString()
+      val correlationId = uuidGenerator.generate()
 
       val xmlMetadataHeader = FileTransferMetadataHeader(
         caseReferenceNumber = "Risk-123",
