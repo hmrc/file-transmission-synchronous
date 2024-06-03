@@ -35,7 +35,6 @@
     </logger>
 
     <logger name="com.ning.http.client.providers.netty" additivity="false">
-        <appender-ref ref="STDOUT_IGNORE_NETTY" />
     </logger>
 
     <logger name="application" level="ERROR"/>
