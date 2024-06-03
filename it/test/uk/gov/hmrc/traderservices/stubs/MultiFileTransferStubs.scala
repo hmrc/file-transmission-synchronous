@@ -323,8 +323,8 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-multiple-files")))
 
   abstract class SingleFileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName:String = "Route1") {
-    val correlationId = ju.UUID.randomUUID().toString()
-    val conversationId = ju.UUID.randomUUID().toString()
+    val correlationId = "541216ee-1926-4f1a-8e25-0d6c56ea11e9"
+    val conversationId = "22661ca8-7164-4782-a647-fd35de0f2522"
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
         MessageUtils.read(new ByteArrayInputStream(bytes))
@@ -403,7 +403,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
 
     def fileUrl(f: TestFileTransfer): String
 
-    val conversationId = ju.UUID.randomUUID().toString()
+    val conversationId = "22661ca8-7164-4782-a647-fd35de0f2522"
 
     val testFileTransfers: Seq[TestFileTransfer] = files.map { case (fileName, bytesOpt, status) =>
       val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -415,7 +415,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       }
 
       val upscanReference = fileName.reverse
-      val correlationId = ju.UUID.randomUUID().toString()
+      val correlationId = "541216ee-1926-4f1a-8e25-0d6c56ea11e9"
 
       val xmlMetadataHeader = FileTransferMetadataHeader(
         caseReferenceNumber = "Risk-123",

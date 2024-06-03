@@ -26,7 +26,6 @@ import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.{util => ju}
 import scala.util.Try
 
 trait FileTransferStubs {
@@ -311,8 +310,8 @@ trait FileTransferStubs {
     verify(times, postRequestedFor(urlPathEqualTo("/transfer-file")))
 
   abstract class FileTransferTest(fileName: String, bytesOpt: Option[Array[Byte]] = None, applicationName: String = "Route1") {
-    val correlationId = ju.UUID.randomUUID().toString()
-    val conversationId = ju.UUID.randomUUID().toString()
+    val correlationId = "541216ee-1926-4f1a-8e25-0d6c56ea11e9"
+    val conversationId = "22661ca8-7164-4782-a647-fd35de0f2522"
     val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
       case Some(bytes) =>
         MessageUtils.read(new ByteArrayInputStream(bytes))

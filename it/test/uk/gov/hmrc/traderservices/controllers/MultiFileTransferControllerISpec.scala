@@ -34,6 +34,8 @@ class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
 
+  val correlationId = "541216ee-1926-4f1a-8e25-0d6c56ea11e9"
+
   val url = s"http://localhost:$port"
 
   val dateTime = LocalDateTime.now()
@@ -235,7 +237,7 @@ class MultiFileTransferControllerISpec
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString
+        val conversationId = "22661ca8-7164-4782-a647-fd35de0f2522"
 
         val payload = Json.obj(
           "conversationId"      -> conversationId,
@@ -516,7 +518,7 @@ class MultiFileTransferControllerISpec
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
         .withHttpHeaders(
-          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          "x-correlation-id"        -> correlationId,
           HeaderNames.authorisation -> "Bearer dummy-it-token"
         )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
@@ -636,7 +638,7 @@ class MultiFileTransferControllerISpec
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
         .withHttpHeaders(
-          "x-correlation-id"        -> UUID.randomUUID().toString(),
+          "x-correlation-id"        -> correlationId,
           HeaderNames.authorisation -> "Bearer dummy-it-token"
         )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
