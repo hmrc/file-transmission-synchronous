@@ -52,6 +52,8 @@ class FileTransferController @Inject() (
 
   val unitInterval = appConfig.unitInterval
 
+  val correlationId = "541216ee-1926-4f1a-8e25-0d6c56ea11e9"
+
   // POST /transfer-file
   final val transferFile: Action[String] =
     Action.async(parseTolerantTextUtf8) { implicit request =>
@@ -63,7 +65,7 @@ class FileTransferController @Inject() (
                 correlationId = Some(
                   fileTransferRequest.correlationId
                     .orElse(request.headers.get("X-Correlation-Id"))
-                    .getOrElse(UUID.randomUUID().toString())
+                    .getOrElse(correlationId)
                 ),
                 requestId = hc.requestId.map(_.value)
               ),

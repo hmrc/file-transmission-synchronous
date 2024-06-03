@@ -134,7 +134,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString
+        val conversationId = "22661ca8-7164-4782-a647-fd35de0f2522"
 
         val jsonBodyWritable =
           BodyWritable
