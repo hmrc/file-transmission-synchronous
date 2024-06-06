@@ -404,6 +404,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     def fileUrl(f: TestFileTransfer): String
 
     val conversationId = ju.UUID.randomUUID().toString()
+    val correlationId = ju.UUID.randomUUID().toString()
 
     val testFileTransfers: Seq[TestFileTransfer] = files.map { case (fileName, bytesOpt, status) =>
       val (bytes, base64Content, checksum, fileSize) = bytesOpt match {
@@ -415,7 +416,6 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       }
 
       val upscanReference = fileName.reverse
-      val correlationId = ju.UUID.randomUUID().toString()
 
       val xmlMetadataHeader = FileTransferMetadataHeader(
         caseReferenceNumber = "Risk-123",

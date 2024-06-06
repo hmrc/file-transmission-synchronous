@@ -44,6 +44,7 @@ import play.api.libs.json.JsObject
   */
 class FileTransferActor(
   conversationId: String,
+  correlationId: String,
   caseReferenceNumber: String,
   applicationName: String,
   metadata: Option[JsObject],
@@ -90,7 +91,7 @@ class FileTransferActor(
           file.fileMimeType,
           batchSize,
           index + 1,
-          Some(UUID.randomUUID().toString()),
+          Some(correlationId),
           Some(requestId),
           file.fileSize,
           Some(attempt)

@@ -106,6 +106,7 @@ class FileTransferController @Inject() (
       withAuthorised {
         withPayload[MultiFileTransferRequest] { fileTransferRequest =>
           val requestId: String = UUID.randomUUID().toString()
+          val correlationId: String = request.headers.get("X-Correlation-Id").getOrElse(UUID.randomUUID().toString)
 
           val auditFunction: FileTransferActor.AuditFunction =
             auditService.auditMultipleFilesTransmission(fileTransferRequest)
@@ -126,6 +127,7 @@ class FileTransferController @Inject() (
               Props(
                 classOf[FileTransferActor],
                 fileTransferRequest.conversationId,
+                correlationId,
                 fileTransferRequest.caseReferenceNumber,
                 fileTransferRequest.applicationName,
                 fileTransferRequest.metadata,
