@@ -16,17 +16,15 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import org.apache.pekko.actor.Actor
-import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.{Actor, ActorRef}
 import org.apache.pekko.pattern.pipe
 import play.api.Logger
+import play.api.libs.json.JsObject
 import uk.gov.hmrc.traderservices.models._
 
 import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import play.api.libs.json.JsObject
 
 /** An Actor responsible for orchestrating transmission of files.
   *
