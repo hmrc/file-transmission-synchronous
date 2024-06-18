@@ -20,7 +20,6 @@ import com.codahale.metrics.MetricRegistry
 import org.scalatest.Suite
 import org.scalatest.matchers.should.Matchers
 import play.api.Application
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 import scala.jdk.CollectionConverters._
 
 trait MetricsTestSupport {
@@ -31,7 +30,7 @@ trait MetricsTestSupport {
   private var metricsRegistry: MetricRegistry = _
 
   def givenCleanMetricRegistry(): Unit = {
-    val registry = app.injector.instanceOf[Metrics].defaultRegistry
+    val registry = app.injector.instanceOf[MetricRegistry]
     registry.getMetrics.keySet().asScala.foreach(metric => registry.remove(metric))
     metricsRegistry = registry
   }

@@ -18,7 +18,6 @@ package uk.gov.hmrc.traderservices.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.http.{Fault, HttpStatus}
-import org.xmlunit.diff.ComparisonType
 import uk.gov.hmrc.traderservices.models.{FileTransferMetadataHeader, FileTransferRequest}
 import uk.gov.hmrc.traderservices.support.WireMockSupport
 import uk.gov.hmrc.traderservices.utilities.FileNameUtils
@@ -228,8 +227,7 @@ trait FileTransferStubs {
           "x-metadata",
           if (xmlMetadataHeader.isEmpty) containing("xml")
           else if(xmlMetadataHeader.contains("correlationID"))
-            equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}").exemptingComparisons(
-            ComparisonType.XML_VERSION, ComparisonType.XML_ENCODING, ComparisonType.TEXT_VALUE)
+            equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
           else equalToXml(xmlMetadataHeader, true, "\\{\\{", "\\}\\}")
         )
         .withHeader("referer", equalTo(applicationName))

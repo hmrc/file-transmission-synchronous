@@ -22,7 +22,6 @@ import org.apache.pekko.stream.Materializer
 import play.api.Logger
 import play.api.mvc.{Filter, RequestHeader, Result}
 import uk.gov.hmrc.http.{HttpException, UpstreamErrorResponse}
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import java.util.regex.{Matcher, Pattern}
 import javax.inject.{Inject, Singleton}
@@ -31,10 +30,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class MicroserviceMonitoringFilter @Inject() (metrics: Metrics, routes: Routes)(implicit
+class MicroserviceMonitoringFilter @Inject() (metrics: MetricRegistry, routes: Routes)(implicit
   ec: ExecutionContext,
   val mat: Materializer
-) extends MonitoringFilter(metrics.defaultRegistry) {
+) extends MonitoringFilter(metrics) {
   override def keyToPatternMapping: Seq[(String, String)] =
     KeyToPatternMappingFromRoutes(routes, Set())
 }
