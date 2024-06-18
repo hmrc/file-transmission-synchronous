@@ -45,7 +45,7 @@ lazy val root = (project in file("."))
     Compile / scalafmtOnCompile := true,
     Test / scalafmtOnCompile := true
   )
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .enablePlugins(PlayScala, SbtDistributablesPlugin)
 
 
 lazy val it = project
