@@ -96,63 +96,63 @@ class MultiFileTransferControllerISpec
         testSingleFileTransferSuccessWithCallback("test⫐1.jpeg", applicationName)
         testSingleFileTransferSuccessWithCallback("test2.txt", applicationName)
 
-//        testMultipleFilesTransferWithoutCallback(
-//          applicationName,
-//          Seq(
-//            ("oneByteArray", Some(oneByteArray), 201),
-//            ("twoBytesArray", Some(twoBytesArray), 200),
-//            ("threeBytesArray", Some(threeBytesArray), 203),
-//            ("prod.routes", None, 202),
-//            ("app.routes", None, 202),
-//            ("schema.json", None, 202),
-//            ("logback.xml", None, 202),
-//            ("test⫐1.jpeg", None, 202),
-//            ("test2.txt", None, 202)
-//          )
-//        )
-//        testMultipleFilesTransferWithoutCallback(
-//          applicationName,
-//          Seq(
-//            ("oneByteArray", Some(oneByteArray), 404),
-//            ("twoBytesArray", Some(twoBytesArray), 500),
-//            ("threeBytesArray", Some(threeBytesArray), 202),
-//            ("prod.routes", None, 200),
-//            ("app.routes", None, 400),
-//            ("schema.json", None, 403),
-//            ("logback.xml", None, 500),
-//            ("test⫐1.jpeg", None, 599),
-//            ("test2.txt", None, 202)
-//          )
-//        )
+        testMultipleFilesTransferWithoutCallback(
+          applicationName,
+          Seq(
+            ("oneByteArray", Some(oneByteArray), 201),
+            ("twoBytesArray", Some(twoBytesArray), 200),
+            ("threeBytesArray", Some(threeBytesArray), 203),
+            ("prod.routes", None, 202),
+            ("app.routes", None, 202),
+            ("schema.json", None, 202),
+            ("logback.xml", None, 202),
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
+          )
+        )
+        testMultipleFilesTransferWithoutCallback(
+          applicationName,
+          Seq(
+            ("oneByteArray", Some(oneByteArray), 404),
+            ("twoBytesArray", Some(twoBytesArray), 500),
+            ("threeBytesArray", Some(threeBytesArray), 202),
+            ("prod.routes", None, 200),
+            ("app.routes", None, 400),
+            ("schema.json", None, 403),
+            ("logback.xml", None, 500),
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
+          )
+        )
 
-//        testMultipleFilesTransferWithCallback(
-//          applicationName,
-//          Seq(
-//            ("oneByteArray", Some(oneByteArray), 201),
-//            ("twoBytesArray", Some(twoBytesArray), 200),
-//            ("threeBytesArray", Some(threeBytesArray), 203),
-//            ("prod.routes", None, 202),
-//            ("app.routes", None, 202),
-//            ("schema.json", None, 202),
-//            ("logback.xml", None, 202),
-//            ("test⫐1.jpeg", None, 202),
-//            ("test2.txt", None, 202)
-//          )
-//        )
-//        testMultipleFilesTransferWithCallback(
-//          applicationName,
-//          Seq(
-//            ("oneByteArray", Some(oneByteArray), 404),
-//            ("twoBytesArray", Some(twoBytesArray), 500),
-//            ("threeBytesArray", Some(threeBytesArray), 202),
-//            ("prod.routes", None, 200),
-//            ("app.routes", None, 400),
-//            ("schema.json", None, 403),
-//            ("logback.xml", None, 500),
-//            ("test⫐1.jpeg", None, 599),
-//            ("test2.txt", None, 202)
-//          )
-//        )
+        testMultipleFilesTransferWithCallback(
+          applicationName,
+          Seq(
+            ("oneByteArray", Some(oneByteArray), 201),
+            ("twoBytesArray", Some(twoBytesArray), 200),
+            ("threeBytesArray", Some(threeBytesArray), 203),
+            ("prod.routes", None, 202),
+            ("app.routes", None, 202),
+            ("schema.json", None, 202),
+            ("logback.xml", None, 202),
+            ("test⫐1.jpeg", None, 202),
+            ("test2.txt", None, 202)
+          )
+        )
+        testMultipleFilesTransferWithCallback(
+          applicationName,
+          Seq(
+            ("oneByteArray", Some(oneByteArray), 404),
+            ("twoBytesArray", Some(twoBytesArray), 500),
+            ("threeBytesArray", Some(threeBytesArray), 202),
+            ("prod.routes", None, 200),
+            ("app.routes", None, 400),
+            ("schema.json", None, 403),
+            ("logback.xml", None, 500),
+            ("test⫐1.jpeg", None, 599),
+            ("test2.txt", None, 202)
+          )
+        )
         testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 400)
         testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 403)
         testCallbackFailure("oneByteArray", applicationName, Some(oneByteArray), 404)
