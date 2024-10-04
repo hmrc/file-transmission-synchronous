@@ -113,7 +113,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
     )
 
-    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
+    stubForCallbackPayloadStatus(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
     downloadUrl
   }
 
@@ -136,7 +136,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         .-("totalDurationMillis")
     }
 
-  def stubForCallback(callbackUrl: String, callbackPayload: String, status: Int): StubMapping =
+  def stubForCallbackPayloadStatus(callbackUrl: String, callbackPayload: String, status: Int): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .withRequestBody(equalToJson(callbackPayload, true, true))
@@ -155,7 +155,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
         )
     )
 
-  def stubForCallback(callbackUrl: String, fault: Fault): StubMapping =
+  def stubForCallbackFault(callbackUrl: String, fault: Fault): StubMapping =
     stubFor(
       post(urlEqualTo(callbackUrl))
         .willReturn(
@@ -298,7 +298,7 @@ trait MultiFileTransferStubs extends FileTransferStubs {
       0
     )
 
-    stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
+    stubForCallbackPayloadStatus(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
   }
 
   def givenTraderMultiServicesFileTransferSucceeds(): Unit =
