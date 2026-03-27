@@ -1,9 +1,9 @@
 import uk.gov.hmrc.{DefaultBuildSettings, SbtAutoBuildPlugin}
 
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 ThisBuild / majorVersion := 0
 
-val bootstrapVersion = "8.5.0"
+val bootstrapVersion = "10.7.0"
 
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
