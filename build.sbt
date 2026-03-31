@@ -20,7 +20,6 @@ lazy val scoverageSettings = {
 lazy val compileDeps = Seq(
   ws,
   "uk.gov.hmrc"                  %% "bootstrap-backend-play-30" % bootstrapVersion,
-  "uk.gov.hmrc"                  %% "http-verbs-play-30"       % "15.6.0",
   "org.typelevel"                %% "cats-core"                 % "2.10.0",
   "com.github.robtimus"           % "data-url"                  % "2.0.1",
   "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.17.0-rc1"
