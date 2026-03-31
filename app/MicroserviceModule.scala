@@ -17,7 +17,6 @@
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http._
 import uk.gov.hmrc.traderservices.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import com.google.inject.{Inject, Singleton}
@@ -37,8 +36,6 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     val appName = "file-transmission-synchronous"
     Logger(getClass).info(s"Starting microservice : $appName : in mode : ${environment.mode}")
 
-    bind(classOf[HttpGet]).to(classOf[CustomHttpClient])
-    bind(classOf[HttpPost]).to(classOf[CustomHttpClient])
     bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
   }
 }
