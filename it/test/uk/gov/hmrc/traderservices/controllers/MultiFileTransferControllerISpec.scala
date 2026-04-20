@@ -634,7 +634,7 @@ class MultiFileTransferControllerISpec
           Some(Json.obj("foo" -> Json.obj("bar" -> 1), "zoo" -> JsString("zar")))
         )
 
-      stubForCallback(callbackUrl, expectedCallbackPayload(expectedResponse), 200)
+      stubForCallbackPayloadStatus(callbackUrl = callbackUrl, expectedCallbackPayload(expectedResponse), 200)
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
@@ -930,7 +930,7 @@ class MultiFileTransferControllerISpec
           xmlMetadataHeader
         )
 
-      stubForCallback(callbackUrl, callbackStatus)
+      stubForCallback(callbackUrl = callbackUrl, callbackStatus)
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
@@ -973,7 +973,7 @@ class MultiFileTransferControllerISpec
           xmlMetadataHeader
         )
 
-      stubForCallback(callbackUrl, callbackFault)
+      stubForCallbackFault(callbackUrl = callbackUrl, callbackFault)
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
