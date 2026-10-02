@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.stream.stage.GraphStageWithMaterializedValue
-import akka.stream.FlowShape
-import akka.util.ByteString
+import org.apache.pekko.stream.stage.GraphStageWithMaterializedValue
+import org.apache.pekko.stream.FlowShape
+import org.apache.pekko.util.ByteString
 import scala.concurrent.Future
-import akka.stream.Inlet
-import akka.stream.Outlet
-import akka.stream.stage.GraphStageLogic
-import akka.stream.Attributes
-import akka.stream.stage.OutHandler
-import akka.stream.stage.StageLogging
-import akka.stream.stage.InHandler
+import org.apache.pekko.stream.Inlet
+import org.apache.pekko.stream.Outlet
+import org.apache.pekko.stream.stage.GraphStageLogic
+import org.apache.pekko.stream.Attributes
+import org.apache.pekko.stream.stage.OutHandler
+import org.apache.pekko.stream.stage.StageLogging
+import org.apache.pekko.stream.stage.InHandler
 import scala.concurrent.Promise
 import java.util.Base64
 import scala.util.Failure
@@ -37,9 +37,7 @@ import play.api.Logger
 
 case class FileSizeAndChecksum(fileSize: Int, checkumSHA256: String)
 
-/**
-  * Custom Akka Stream stage encoding stream as base64
-  * and calculating size and SHA-256 checksum.
+/** Custom Pekko Stream stage encoding stream as base64 and calculating size and SHA-256 checksum.
   */
 object EncodeFileBase64
     extends GraphStageWithMaterializedValue[FlowShape[ByteString, ByteString], Future[
@@ -67,7 +65,7 @@ object EncodeFileBase64
         var fileSize: Int = 0
         var previous: ByteBuffer = ByteBuffer.allocate(0)
 
-        final override def preStart: Unit =
+        final override def preStart(): Unit =
           setKeepGoing(true)
 
         setHandler(
@@ -90,7 +88,7 @@ object EncodeFileBase64
                 )
 
             private def encodeAndPush(input: ByteString): Unit = {
-              val bytes = (if (previous.remaining > 0) (ByteString(previous) ++ input) else input).toByteBuffer
+              val bytes = (if (previous.remaining > 0) ByteString(previous) ++ input else input).toByteBuffer
               val length = bytes.limit()
               val chunkLength = if (length < 3) length else (length / 3) * 3
               fileSize = fileSize + chunkLength
@@ -108,7 +106,7 @@ object EncodeFileBase64
                 val checksum = convertBytesToHex(digest.digest())
                 Logger(getClass).info(
                   s"Stream encoding success, size $fileSize bytes, SHA-256 checksum $checksum, time ${(System
-                    .nanoTime() - t0) / 10e6} ms."
+                      .nanoTime() - t0) / 10e6} ms."
                 )
                 promise.complete(
                   Success(FileSizeAndChecksum(fileSize, checksum))

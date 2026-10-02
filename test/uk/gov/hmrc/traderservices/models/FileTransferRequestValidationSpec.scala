@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.traderservices.services
 
-import uk.gov.hmrc.traderservices.support.UnitSpec
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import java.util.UUID
 import uk.gov.hmrc.traderservices.models.FileTransferData
 import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
 import play.api.libs.json.Json
 import play.api.libs.json.JsString
+import uk.gov.hmrc.traderservices.support.UnitSpec
 
 class FileTransferRequestValidationSpec extends UnitSpec {
 
@@ -111,8 +111,8 @@ class FileTransferRequestValidationSpec extends UnitSpec {
           .validate(validRequest.copy(fileName = "a" * l))
           .isValid shouldBe true
       FileTransferRequest
-        .validate(validRequest.copy(fileName = "a" * 94))
-        .isValid shouldBe false
+        .validate(validRequest.copy(fileName = "a" * 256))
+        .isValid shouldBe true
       FileTransferRequest
         .validate(validRequest.copy(fileMimeType = ""))
         .isValid shouldBe false
@@ -176,8 +176,8 @@ class FileTransferRequestValidationSpec extends UnitSpec {
           .validate(validData.copy(fileName = "a" * l))
           .isValid shouldBe true
       FileTransferData
-        .validate(validData.copy(fileName = "a" * 94))
-        .isValid shouldBe false
+        .validate(validData.copy(fileName = "a" * 256))
+        .isValid shouldBe true
       FileTransferData
         .validate(validData.copy(fileMimeType = ""))
         .isValid shouldBe false

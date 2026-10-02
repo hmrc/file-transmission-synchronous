@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,31 +16,33 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.actor.Actor
-import akka.actor.ActorRef
-import akka.pattern.pipe
+import org.apache.pekko.actor.{Actor, ActorRef}
+import org.apache.pekko.pattern.pipe
 import play.api.Logger
+import play.api.libs.json.JsObject
 import uk.gov.hmrc.traderservices.models._
 
 import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import play.api.libs.json.JsObject
 
-/**
-  * An Actor responsible for orchestrating transmission of files.
+/** An Actor responsible for orchestrating transmission of files.
   *
-  * @param conversationId unique conversation ID of this transfer batch
+  * @param conversationId
+  *   unique conversation ID of this transfer batch
   * @param caseReferenceNumber
   * @param applicationName
   * @param requestId
-  * @param transfer function to call to transfer a single file
-  * @param audit function to call to audit result of transmission
-  * @param callback function to call to after transmission
+  * @param transfer
+  *   function to call to transfer a single file
+  * @param audit
+  *   function to call to audit result of transmission
+  * @param callback
+  *   function to call to after transmission
   */
 class FileTransferActor(
   conversationId: String,
+  correlationId: String,
   caseReferenceNumber: String,
   applicationName: String,
   metadata: Option[JsObject],
@@ -67,9 +69,8 @@ class FileTransferActor(
       startTimestamp = System.nanoTime()
       clientRef = sender()
       files
-        .map {
-          case (file, index) =>
-            TransferSingleFile(file, index, batchSize, 0)
+        .map { case (file, index) =>
+          TransferSingleFile(file, index, batchSize, 0)
         }
         .foreach(request => self ! request)
       context.system.scheduler
@@ -88,7 +89,7 @@ class FileTransferActor(
           file.fileMimeType,
           batchSize,
           index + 1,
-          Some(UUID.randomUUID().toString()),
+          Some(correlationId),
           Some(requestId),
           file.fileSize,
           Some(attempt)
@@ -161,12 +162,12 @@ class FileTransferActor(
                   fileTransferRequest.fileName,
                   fileTransferRequest.fileMimeType,
                   fileTransferRequest.fileSize.getOrElse(0),
-                  false,
+                  success = false,
                   0,
                   LocalDateTime.now,
                   fileTransferRequest.correlationId.getOrElse(UNKNOWN),
                   fileTransferRequest.durationMillis,
-                  Option(s"${error.getClass().getName()}: ${error.getMessage()}")
+                  Option(s"${error.getClass.getName}: ${error.getMessage}")
                 )
               )
           },
@@ -181,8 +182,8 @@ class FileTransferActor(
       context.system.scheduler
         .scheduleOnce(unitInterval * retryMessage.attempt * 10, self, retryMessage)
 
-    case akka.actor.Status.Failure(error) =>
-      Logger(getClass).error(error.toString())
+    case org.apache.pekko.actor.Status.Failure(error) =>
+      Logger(getClass).error(error.toString)
       results = results :+ FileTransferResult(
         upscanReference = UNKNOWN,
         checksum = UNKNOWN,
@@ -194,7 +195,7 @@ class FileTransferActor(
         LocalDateTime.now(),
         UNKNOWN,
         0,
-        error = Some(error.toString())
+        error = Some(error.toString)
       )
 
     case CheckComplete(batchSize) =>
@@ -216,14 +217,14 @@ class FileTransferActor(
         if (completed)
           Logger(getClass).info(
             s"Transferred ${results.size} out of $batchSize files, it was ${results
-              .count(_.success)} successes and ${results.count(f => !f.success)} failures, total duration was $totalDurationMillis ms."
+                .count(_.success)} successes and ${results.count(f => !f.success)} failures, total duration was $totalDurationMillis ms."
           )
         else
           Logger(getClass).error(
             s"Timeout, transferred ${if (results.nonEmpty) "none"
-            else s"only ${results.size}"} out of $batchSize files, ${if (results.nonEmpty) s"it was ${results
-              .count(_.success)} successes and ${results.count(f => !f.success)} failures.}, total duration was $totalDurationMillis ms."
-            else ""}"
+              else s"only ${results.size}"} out of $batchSize files, ${if (results.nonEmpty) s"it was ${results
+                  .count(_.success)} successes and ${results.count(f => !f.success)} failures.}, total duration was $totalDurationMillis ms."
+              else ""}"
           )
       } else
         context.system.scheduler

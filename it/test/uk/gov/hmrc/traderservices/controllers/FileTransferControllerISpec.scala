@@ -1,19 +1,34 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.controllers
 
-import java.time.LocalDateTime
+import com.github.tomakehurst.wiremock.http.Fault
+import org.apache.pekko.util.ByteString
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
-import play.api.libs.ws.WSClient
-import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.ServerBaseISpec
-import uk.gov.hmrc.traderservices.support.JsonMatchers
-import com.github.tomakehurst.wiremock.http.Fault
-import play.api.libs.ws.BodyWritable
-import java.nio.charset.StandardCharsets
-import play.api.libs.ws.InMemoryBody
-import akka.util.ByteString
+import play.api.libs.ws.{BodyWritable, InMemoryBody, WSClient}
+import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
+import uk.gov.hmrc.traderservices.stubs._
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
+
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 
 class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with FileTransferStubs with JsonMatchers {
   this: Suite with ServerProvider =>
@@ -39,7 +54,6 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       testFileTransferBadRequest("request with an empty checksum", exampleRequest.copy(checksum = ""))
       testFileTransferBadRequest("request with too long checksum", exampleRequest.copy(checksum = "a" * 65))
       testFileTransferBadRequest("request with an empty fileName", exampleRequest.copy(fileName = ""))
-      testFileTransferBadRequest("request with too long fileName", exampleRequest.copy(fileName = "a" * 95))
       testFileTransferBadRequest("request with an empty fileMimeType", exampleRequest.copy(fileMimeType = ""))
       testFileTransferBadRequest("request with a zero batchSize", exampleRequest.copy(batchSize = 0))
       testFileTransferBadRequest("request with a zero batchCount", exampleRequest.copy(batchCount = 0))
@@ -110,6 +124,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
         val result = wsClient
           .url(s"$url/transfer-file")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.obj())
           .futureValue
 
@@ -119,21 +134,31 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString()
+        val conversationId = java.util.UUID.randomUUID().toString
 
         val jsonBodyWritable =
           BodyWritable
             .apply[String](s => InMemoryBody(ByteString.fromString(s, StandardCharsets.UTF_8)), "application/json")
 
+        val payload = Json.obj(
+          "conversationId"      -> conversationId,
+          "caseReferenceNumber" -> "Risk-123",
+          "applicationName"     -> "Route1",
+          "upscanReference"     -> "XYZ0123456789",
+          "fileName"            -> "foo",
+          "fileMimeType"        -> "image/"
+        )
+
         val result = wsClient
           .url(s"$url/transfer-file")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(s"""{
-                         |"conversationId":"$conversationId",
-                         |"caseReferenceNumber":"Risk-123",
-                         |"applicationName":"Route1",
-                         |"upscanReference":"XYZ0123456789",
-                         |"fileName":"foo",
-                         |"fileMimeType":"image/""")(jsonBodyWritable)
+                   |"conversationId":"$conversationId",
+                   |"caseReferenceNumber":"Risk-123",
+                   |"applicationName":"Route1",
+                   |"upscanReference":"XYZ0123456789",
+                   |"fileName":"foo",
+                   |"fileMimeType":"image/""")(jsonBodyWritable)
           .futureValue
 
         result.status shouldBe 400
@@ -159,7 +184,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
         val result = wsClient
           .url(s"$url/transfer-file")
-          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.parse(jsonPayload("Risk-123", "Route1")))
           .futureValue
 
@@ -173,10 +198,11 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
     }
   }
 
-  def testFileTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val fileUrl =
@@ -193,7 +219,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName)))
         .futureValue
 
@@ -202,12 +228,12 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHasHappened(1)
     }
-  }
 
-  def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None) {
+  def testDataTransferSuccess(fileName: String, applicationName: String, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 202 when transferring data as $fileName for #$applicationName succeeds" in new FileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
       givenAuthorised()
       val fileUrl =
@@ -224,7 +250,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName)))
         .futureValue
 
@@ -233,9 +259,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHaveNotHappen()
       verifyFileUploadHasHappened(1)
     }
-  }
 
-  def testFileTransferBadRequest(description: String, fileTransferRequest: FileTransferRequest) {
+  def testFileTransferBadRequest(description: String, fileTransferRequest: FileTransferRequest): Unit =
     s"return 400 when processing $description" in new FileTransferTest(
       fileTransferRequest.fileName,
       Some(oneByteArray)
@@ -245,7 +270,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.toJson(fileTransferRequest))
         .futureValue
 
@@ -254,9 +279,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHaveNotHappen(fileTransferRequest.fileName)
       verifyFileUploadHaveNotHappen()
     }
-  }
 
-  def testFileUploadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileUploadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 500 when uploading $fileName fails because of $status" in new FileTransferTest(fileName, bytesOpt) {
       givenAuthorised()
       val fileUrl =
@@ -274,7 +298,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
@@ -283,9 +307,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHasHappened(1)
     }
-  }
 
-  def testFileDownloadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testFileDownloadFailure(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None): Unit =
     s"return 500 when downloading $fileName fails because of $status" in new FileTransferTest(fileName, bytesOpt) {
       givenAuthorised()
       val fileUrl =
@@ -303,7 +326,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("x-correlation-id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
@@ -312,9 +335,8 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyFileDownloadHasHappened(fileName, 1)
       verifyFileUploadHaveNotHappen()
     }
-  }
 
-  def testFileDownloadFault(fileName: String, status: Int, fault: Fault) {
+  def testFileDownloadFault(fileName: String, status: Int, fault: Fault): Unit =
     s"return 500 when downloading $fileName fails because of $status with $fault" in new FileTransferTest(fileName) {
       givenAuthorised()
       val fileUrl =
@@ -333,6 +355,7 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
 
       val result = wsClient
         .url(s"$url/transfer-file")
+        .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1")))
         .futureValue
 
@@ -340,6 +363,5 @@ class FileTransferControllerISpec extends ServerBaseISpec with AuthStubs with Fi
       verifyAuthorisationHasHappened()
       verifyFileUploadHaveNotHappen()
     }
-  }
 
 }

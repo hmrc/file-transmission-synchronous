@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,17 +63,15 @@ case class FileTransferMetadataHeader(
        |<mdg:compressed>false</mdg:compressed>
        |<mdg:encrypted>false</mdg:encrypted>
        |<mdg:properties>
-       |${properties.map {
-      case (key, value) =>
+       |${properties.map { case (key, value) =>
         s"""<mdg:property>
-       |<mdg:name>$key</mdg:name>
-       |<mdg:value>$value</mdg:value>
-       |</mdg:property>""".stripMargin
-    }.mkString}
+           |<mdg:name>$key</mdg:name>
+           |<mdg:value>$value</mdg:value>
+           |</mdg:property>""".stripMargin
+      }.mkString}
        |</mdg:properties>
        |<mdg:sourceLocation>$sourceLocation</mdg:sourceLocation>
-       |<mdg:sourceFileName>${FileTransferMetadataHeader
-      .refineFileName(sourceFileName, correlationId)}</mdg:sourceFileName>
+       |<mdg:sourceFileName>$sourceFileName</mdg:sourceFileName>
        |<mdg:sourceFileMimeType>$sourceFileMimeType</mdg:sourceFileMimeType>
        |<mdg:destinations>
        |<mdg:destination>
@@ -82,22 +80,4 @@ case class FileTransferMetadataHeader(
        |</mdg:destinations>
        |</mdg:BatchFileInterfaceMetadata>""".stripMargin.replaceAll("\n", "")
 
-}
-
-object FileTransferMetadataHeader {
-
-  final def refineFileName(sourceFileName: String, correlationId: String) = {
-    val asciiOnly = sourceFileName
-      .replaceAll(s"[^\\p{ASCII}]", "?")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll("'", "&apos;")
-      .replaceAll("\"", "&quot;")
-    val lastDot = asciiOnly.lastIndexOf(".")
-    if (lastDot >= 0)
-      asciiOnly.substring(0, lastDot) + "_" + correlationId + asciiOnly.substring(lastDot)
-    else
-      asciiOnly + "_" + correlationId
-  }
 }

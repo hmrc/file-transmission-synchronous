@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,16 +24,15 @@ import scala.util.Failure
 import scala.util.Try
 import scala.concurrent.Future
 import play.api.mvc.Result
-import scala.concurrent.ExecutionContext
 import play.api.mvc.Request
 import uk.gov.hmrc.traderservices.models.Validator
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import play.api.libs.json.Json
 import play.api.mvc.BodyParser
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import play.api.libs.streams.Accumulator
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.stream.scaladsl.Sink
 import java.nio.charset.StandardCharsets
 
 trait ControllerHelper {
@@ -41,11 +40,11 @@ trait ControllerHelper {
   type HandleError = (String, String) => Future[Result]
 
   protected val parseTolerantTextUtf8: BodyParser[String] =
-    BodyParser("parseTolerantTextUtf8") { request =>
+    BodyParser("parseTolerantTextUtf8") { _ =>
       val decodeAsUtf8: Sink[ByteString, Future[Either[Result, String]]] =
         Sink
-          .fold[Either[Result, String], ByteString](Right("")) {
-            case (a, b) => a.map(_ + (b.decodeString(StandardCharsets.UTF_8)))
+          .fold[Either[Result, String], ByteString](Right("")) { case (a, b) =>
+            a.map(_ + b.decodeString(StandardCharsets.UTF_8))
           }
       Accumulator(decodeAsUtf8)
     }
@@ -57,15 +56,14 @@ trait ControllerHelper {
   )(implicit
     request: Request[String],
     reads: Reads[T],
-    validate: Validator.Validate[T],
-    ec: ExecutionContext
+    validate: Validator.Validate[T]
   ): Future[Result] =
     Try(Json.parse(request.body).validate[T]) match {
 
       case Success(JsSuccess(payload, _)) =>
         validate(payload) match {
 
-          case Valid(a) =>
+          case Valid(_) =>
             f(payload)
 
           case Invalid(errs) =>
@@ -79,11 +77,10 @@ trait ControllerHelper {
         handleError(
           "ERROR_JSON",
           s"Invalid payload: Parsing failed due to ${errs
-            .map {
-              case (path, errors) =>
+              .map { case (path, errors) =>
                 s"at path $path with ${errors.map(e => e.messages.mkString(", ")).mkString(", ")}"
-            }
-            .mkString(", and ")}."
+              }
+              .mkString(", and ")}."
         )
 
       case Failure(e) =>

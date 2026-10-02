@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,25 @@
 
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ContentTypes
-import akka.http.scaladsl.model.DateTime
-import akka.http.scaladsl.model.HttpEntity
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.headers.Date
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.stream.Materializer
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Keep
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.model.ContentTypes
+import org.apache.pekko.http.scaladsl.model.DateTime
+import org.apache.pekko.http.scaladsl.model.HttpEntity
+import org.apache.pekko.http.scaladsl.model.HttpMethods
+import org.apache.pekko.http.scaladsl.model.HttpRequest
+import org.apache.pekko.http.scaladsl.model.HttpResponse
+import org.apache.pekko.http.scaladsl.model.headers.Date
+import org.apache.pekko.http.scaladsl.model.headers.RawHeader
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Flow
+import org.apache.pekko.stream.scaladsl.Keep
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.Logger
 import uk.gov.hmrc.traderservices.models._
+import uk.gov.hmrc.traderservices.utilities.FileNameUtils
 import uk.gov.hmrc.traderservices.wiring.AppConfig
 
 import java.io.BufferedInputStream
@@ -41,6 +42,7 @@ import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URL
+import java.net.URLStreamHandler
 import java.nio.charset.StandardCharsets
 import scala.concurrent.Await
 import scala.concurrent.Future
@@ -48,10 +50,8 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.net.URLStreamHandler
 
-/**
-  * A Flow modelling transfer of a single file (download and upload).
+/** A Flow modelling transfer of a single file (download and upload).
   */
 trait FileTransferFlow {
 
@@ -60,6 +60,10 @@ trait FileTransferFlow {
 
   implicit val materializer: Materializer
   implicit val actorSystem: ActorSystem
+
+  final val MAX_FILENAME_LENGTH = 255
+  final val DEFAULT_FILE_SIZE_IF_MISSING = 1024
+  final val MAX_ERROR_HTTP_BODY_LENGTH = 10240
 
   private val connectionPool: Flow[
     (HttpRequest, (FileTransferRequest, HttpRequest)),
@@ -86,14 +90,19 @@ trait FileTransferFlow {
         .prepend(Source.single(ByteString(jsonHeader, StandardCharsets.UTF_8)))
         .concat(Source.single(ByteString(jsonFooter, StandardCharsets.UTF_8)))
 
+    val correlationId = fileTransferRequest.correlationId.getOrElse("")
+
+    val sourceFileName =
+      FileNameUtils.sanitize(MAX_FILENAME_LENGTH)(fileTransferRequest.fileName, correlationId)
+
     val xmlMetadata = FileTransferMetadataHeader(
       caseReferenceNumber = fileTransferRequest.caseReferenceNumber,
       applicationName = fileTransferRequest.applicationName,
-      correlationId = fileTransferRequest.correlationId.getOrElse(""),
+      correlationId = correlationId,
       conversationId = fileTransferRequest.conversationId,
-      sourceFileName = fileTransferRequest.fileName,
+      sourceFileName = sourceFileName,
       sourceFileMimeType = fileTransferRequest.fileMimeType,
-      fileSize = fileTransferRequest.fileSize.getOrElse(1024),
+      fileSize = fileTransferRequest.fileSize.getOrElse(DEFAULT_FILE_SIZE_IF_MISSING),
       checksum = fileTransferRequest.checksum,
       batchSize = fileTransferRequest.batchSize,
       batchCount = fileTransferRequest.batchCount
@@ -124,12 +133,11 @@ trait FileTransferFlow {
     )
   }
 
-  /**
-    * Akka Stream flow:
-    * - requests downloading the file,
-    * - encodes file content stream using base64,
-    * - wraps base64 content in a json payload,
-    * - forwards to the upstream endpoint.
+  /** Pekko Stream flow:
+    *   - requests downloading the file,
+    *   - encodes file content stream using base64,
+    *   - wraps base64 content in a json payload,
+    *   - forwards to the upstream endpoint.
     */
   final val fileTransferFlow: Flow[
     FileTransferRequest,
@@ -140,7 +148,7 @@ trait FileTransferFlow {
       .map { fileTransferRequest =>
         Logger(getClass).info(
           s"Starting transfer requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-            .getOrElse("")}] of the file ${fileTransferRequest.upscanReference}, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
+              .getOrElse("")}] of the file ${fileTransferRequest.upscanReference}, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
         )
         val fileDownloadHttpRequest = HttpRequest(
           method = HttpMethods.GET,
@@ -177,7 +185,9 @@ trait FileTransferFlow {
               .future(
                 fileDownloadHttpResponse.entity
                   .toStrict(unitInterval * 1000)
-                  .map(_.data.take(10240).decodeString(StandardCharsets.UTF_8))(actorSystem.dispatcher)
+                  .map(_.data.take(MAX_ERROR_HTTP_BODY_LENGTH).decodeString(StandardCharsets.UTF_8))(
+                    actorSystem.dispatcher
+                  )
               )
               .flatMapConcat(responseBody =>
                 Source.single(
@@ -220,11 +230,10 @@ trait FileTransferFlow {
           )
       }
 
-  /**
-    * Akka Stream flow:
-    * - encodes data content stream using base64,
-    * - wraps base64 content in a json payload,
-    * - forwards to the upstream endpoint.
+  /** Pekko Stream flow:
+    *   - encodes data content stream using base64,
+    *   - wraps base64 content in a json payload,
+    *   - forwards to the upstream endpoint.
     */
   final val dataTransferFlow: Flow[
     FileTransferRequest,
@@ -235,7 +244,7 @@ trait FileTransferFlow {
       .map { fileTransferRequest =>
         Logger(getClass).info(
           s"Starting transfer requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-            .getOrElse("")}] of the data inlined in the URL, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
+              .getOrElse("")}] of the data inlined in the URL, expected SHA-256 checksum is ${fileTransferRequest.checksum}, request startTime is ${fileTransferRequest.startTime} ..."
         )
 
         val dataBytes: Source[ByteString, NotUsed] =
@@ -278,8 +287,7 @@ trait FileTransferFlow {
       ).get
     }
 
-  /**
-    * Runs the flow for a single transfer request.
+  /** Runs the flow for a single transfer request.
     */
   final def executeSingleFileTransfer[R](
     fileTransferRequest: FileTransferRequest,
@@ -296,7 +304,7 @@ trait FileTransferFlow {
             fileUploadHttpResponse.entity.discardBytes()
             Logger(getClass).info(
               s"Transfer attempt ${fileTransferRequest.attempt.getOrElse(0) + 1} requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-                .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} has been successful, duration was ${fileTransferRequest.durationMillis} ms."
+                  .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} has been successful, duration was ${fileTransferRequest.durationMillis} ms."
             )
             onComplete(fileUploadHttpResponse.status.intValue(), None, fileTransferRequest)
           } else {
@@ -307,9 +315,9 @@ trait FileTransferFlow {
                   val body = entity.data.take(10240).decodeString(StandardCharsets.UTF_8)
                   Logger(getClass).error(
                     s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-                      .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed with status ${fileUploadHttpResponse.status
-                      .intValue()} beacuse of ${fileUploadHttpResponse.status.reason}, response body was [$body]; it was ${fileTransferRequest.attempt
-                      .getOrElse(0) + 1} attempt, duration was ${fileTransferRequest.durationMillis} ms."
+                        .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed with status ${fileUploadHttpResponse.status
+                        .intValue()} beacuse of ${fileUploadHttpResponse.status.reason}, response body was [$body]; it was ${fileTransferRequest.attempt
+                        .getOrElse(0) + 1} attempt, duration was ${fileTransferRequest.durationMillis} ms."
                   )
                   if (body.isEmpty) None else Some(body)
                 }(actorSystem.dispatcher),
@@ -332,9 +340,9 @@ trait FileTransferFlow {
           val stackTrace = writer.getBuffer().toString()
           Logger(getClass).error(
             s"Upload request requested by ${fileTransferRequest.applicationName} with conversationId=${fileTransferRequest.conversationId} [correlationId=${fileTransferRequest.correlationId
-              .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed because of [${uploadError.getClass
-              .getName()}: ${uploadError.getMessage()}].\n$stackTrace; it was ${fileTransferRequest.attempt
-              .getOrElse(0) + 1} attempt, duration was ${fileTransferRequest.durationMillis} ms."
+                .getOrElse("")}] of the file ${fileTransferRequest.upscanReference} to ${fileUploadHttpRequest.uri} has failed because of [${uploadError.getClass
+                .getName()}: ${uploadError.getMessage()}].\n$stackTrace; it was ${fileTransferRequest.attempt
+                .getOrElse(0) + 1} attempt, duration was ${fileTransferRequest.durationMillis} ms."
           )
           onFailure(uploadError, fileTransferRequest)
       }
@@ -351,7 +359,7 @@ final case class FileDownloadException(
   durationMillis: Int
 ) extends Exception(
       s"Download requested by $applicationName with conversationId=$conversationId [correlationId=$correlationId] of the file $upscanReference has failed because of ${exception.getClass.getName}: ${exception
-        .getMessage()}; it was ${attempt + 1} attempt, duration was $durationMillis ms."
+          .getMessage()}; it was ${attempt + 1} attempt, duration was $durationMillis ms."
     )
 final case class FileDownloadFailure(
   applicationName: String,

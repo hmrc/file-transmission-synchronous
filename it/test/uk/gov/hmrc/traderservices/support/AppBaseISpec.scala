@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.traderservices.connectors
+package uk.gov.hmrc.traderservices.support
 
-import jakarta.inject.{Inject, Singleton}
-import uk.gov.hmrc.auth.core.PlayAuthConnector
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.traderservices.wiring.AppConfig
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import uk.gov.hmrc.traderservices.stubs.AuthStubs
 
-@Singleton
-class MicroserviceAuthConnector @Inject() (appConfig: AppConfig, override val httpClientV2: HttpClientV2)
-    extends PlayAuthConnector {
+abstract class AppBaseISpec extends BaseISpec with GuiceOneAppPerSuite with TestApplication with AuthStubs {
 
-  override val serviceUrl: String = appConfig.authBaseUrl
+  override implicit lazy val app: Application = defaultAppBuilder.build()
+
 }

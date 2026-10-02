@@ -1,25 +1,34 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.traderservices.controllers
 
-import akka.util.ByteString
 import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
-import play.api.libs.json.Json
-import play.api.libs.ws.BodyWritable
-import play.api.libs.ws.InMemoryBody
+import play.api.libs.json.{JsString, Json}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.traderservices.models.FileTransferResult
-import uk.gov.hmrc.traderservices.models.MultiFileTransferRequest
-import uk.gov.hmrc.traderservices.models.MultiFileTransferResult
+import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
 import uk.gov.hmrc.traderservices.stubs._
-import uk.gov.hmrc.traderservices.support.JsonMatchers
-import uk.gov.hmrc.traderservices.support.ServerBaseISpec
+import uk.gov.hmrc.traderservices.support.{JsonMatchers, ServerBaseISpec}
 
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.UUID
-import play.api.libs.json.JsString
 
 class MultiFileTransferControllerISpec
     extends ServerBaseISpec with AuthStubs with MultiFileTransferStubs with JsonMatchers {
@@ -214,6 +223,7 @@ class MultiFileTransferControllerISpec
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.obj())
           .futureValue
 
@@ -225,21 +235,21 @@ class MultiFileTransferControllerISpec
 
       "return 400 when malformed payload" in {
         givenAuthorised()
-        val conversationId = java.util.UUID.randomUUID().toString()
+        val conversationId = java.util.UUID.randomUUID().toString
 
-        val jsonBodyWritable =
-          BodyWritable
-            .apply[String](s => InMemoryBody(ByteString.fromString(s, StandardCharsets.UTF_8)), "application/json")
+        val payload = Json.obj(
+          "conversationId"      -> conversationId,
+          "caseReferenceNumber" -> "Risk-123",
+          "applicationName"     -> "Route1",
+          "upscanReference"     -> "XYZ0123456789",
+          "fileName"            -> "foo",
+          "fileMimeType"        -> "image/"
+        )
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
-          .post(s"""{
-                           |"conversationId":"$conversationId",
-                           |"caseReferenceNumber":"Risk-123",
-                           |"applicationName":"Route1",
-                           |"upscanReference":"XYZ0123456789",
-                           |"fileName":"foo",
-                           |"fileMimeType":"image/""")(jsonBodyWritable)
+          .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
+          .post(payload)
           .futureValue
 
         result.status shouldBe 400
@@ -267,7 +277,7 @@ class MultiFileTransferControllerISpec
 
         val result = wsClient
           .url(s"$url/transfer-multiple-files")
-          .withHttpHeaders("x-correlation-id" -> correlationId)
+          .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
           .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
           .futureValue
 
@@ -284,11 +294,13 @@ class MultiFileTransferControllerISpec
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when transfer of a single file $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -304,7 +316,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -330,17 +342,18 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleDataTransferSuccessWithoutCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when transfer of a single data $fileName for #$applicationName succeeds (no callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileTransferSucceeds(
@@ -356,7 +369,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -382,17 +395,18 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleFileTransferSuccessWithCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -411,7 +425,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -423,17 +437,18 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testSingleDataTransferSuccessWithCallback(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single data $fileName for #$applicationName succeeds (with callback)" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -452,7 +467,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonDataPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -464,15 +479,16 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testMultipleFilesTransferWithoutCallback(
     applicationName: String,
     files: Seq[(String, Option[Array[Byte]], Int)]
-  ) {
+  ): Unit =
     s"return 201 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (no callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
+
       givenAuthorised()
       override def fileUrl(f: TestFileTransfer): String =
         if (f.status < 300)
@@ -502,7 +518,10 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .withHttpHeaders(
+          "X-Correlation-Id"        -> correlationId,
+          HeaderNames.authorisation -> "Bearer dummy-it-token"
+        )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, None)))
         .futureValue
 
@@ -551,15 +570,16 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testMultipleFilesTransferWithCallback(
     applicationName: String,
     files: Seq[(String, Option[Array[Byte]], Int)]
-  ) {
+  ): Unit =
     s"return 202 when transfering multiple files: ${files.map(f => s"${f._1} as ${f._3}").mkString(", ")} for #$applicationName (with callback)" in new MultiFileTransferTest(
-      files
+      files,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
 
@@ -618,7 +638,10 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> UUID.randomUUID().toString())
+        .withHttpHeaders(
+          "X-Correlation-Id"        -> correlationId,
+          HeaderNames.authorisation -> "Bearer dummy-it-token"
+        )
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -632,19 +655,20 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(expectedNumberOfUploads)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
-  def testFileTransferBadRequest(description: String, fileTransferRequest: MultiFileTransferRequest) {
+  def testFileTransferBadRequest(description: String, fileTransferRequest: MultiFileTransferRequest): Unit =
     s"return 400 when processing $description" in new SingleFileTransferTest(
       fileTransferRequest.files.head.fileName,
-      Some(oneByteArray)
+      Some(oneByteArray),
+      fileTransferRequest.applicationName
     ) {
+
       givenAuthorised()
       val fileUrl = "https://test.com/123"
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.toJson(fileTransferRequest))
         .futureValue
 
@@ -654,13 +678,17 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestNotSent(FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
-  def testSingleFileUploadFailureWithoutCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testSingleFileUploadFailureWithoutCallback(
+    fileName: String,
+    status: Int,
+    bytesOpt: Option[Array[Byte]] = None
+  ): Unit =
     s"return 201 when uploading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenMultiFileUploadFails(
@@ -677,7 +705,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -703,13 +731,17 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
-  def testSingleFileUploadFailureWithCallback(fileName: String, status: Int, bytesOpt: Option[Array[Byte]] = None) {
+  def testSingleFileUploadFailureWithCallback(
+    fileName: String,
+    status: Int,
+    bytesOpt: Option[Array[Byte]] = None
+  ): Unit =
     s"return 202 when uploading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -729,7 +761,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
         .futureValue
 
@@ -740,17 +772,17 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(if (Retry.shouldRetry(status)) 3 else 1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
   def testSingleFileDownloadFailureWithoutCallback(
     fileName: String,
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 201 when downloading $fileName fails because of $status (no callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFails(
@@ -767,7 +799,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -793,17 +825,17 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testSingleFileDownloadFailureWithCallback(
     fileName: String,
     status: Int,
     bytesOpt: Option[Array[Byte]] = None
-  ) {
+  ): Unit =
     s"return 202 when downloading $fileName fails because of $status (with callback)" in new SingleFileTransferTest(
       fileName,
       bytesOpt
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -823,7 +855,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", Some(callbackUrl))))
         .futureValue
 
@@ -835,12 +867,12 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
-  def testSingleFileDownloadFaultWithoutCallback(fileName: String, status: Int, fault: Fault) {
+  def testSingleFileDownloadFaultWithoutCallback(fileName: String, status: Int, fault: Fault): Unit =
     s"return 201 when downloading $fileName fails because of $status with $fault (no callback)" in new SingleFileTransferTest(
       fileName
     ) {
+
       givenAuthorised()
       val fileUrl =
         givenFileDownloadFault(
@@ -858,6 +890,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
+        .withHttpHeaders(HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", "Route1", None)))
         .futureValue
 
@@ -870,18 +903,19 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHaveNotHappen()
       verifyAuditRequestSent(1, FileTransmissionAuditEvent.MultipleFiles)
     }
-  }
 
   def testCallbackFailure(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None,
     callbackStatus: Int
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails with $callbackStatus" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -900,7 +934,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -912,18 +946,19 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, if (Retry.shouldRetry(callbackStatus)) 3 else 1)
     }
-  }
 
   def testCallbackFault(
     fileName: String,
     applicationName: String,
     bytesOpt: Option[Array[Byte]] = None,
     callbackFault: Fault
-  ) {
+  ): Unit =
     s"return 202 when transfer of a single file $fileName for #$applicationName succeeds but callback fails because of $callbackFault" in new SingleFileTransferTest(
       fileName,
-      bytesOpt
+      bytesOpt,
+      applicationName
     ) {
+
       givenAuthorised()
       val callbackUrl = s"/foo/${UUID.randomUUID()}"
       val fileUrl =
@@ -942,7 +977,7 @@ class MultiFileTransferControllerISpec
 
       val result = wsClient
         .url(s"$url/transfer-multiple-files")
-        .withHttpHeaders("x-correlation-id" -> correlationId)
+        .withHttpHeaders("X-Correlation-Id" -> correlationId, HeaderNames.authorisation -> "Bearer dummy-it-token")
         .post(Json.parse(jsonPayload("Risk-123", applicationName, Some(callbackUrl))))
         .futureValue
 
@@ -954,6 +989,5 @@ class MultiFileTransferControllerISpec
       verifyFileUploadHasHappened(1)
       verifyCallbackHasHappened(callbackUrl, 1)
     }
-  }
 
 }

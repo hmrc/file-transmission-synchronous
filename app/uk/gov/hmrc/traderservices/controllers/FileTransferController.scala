@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,16 +24,16 @@ import uk.gov.hmrc.traderservices.wiring.AppConfig
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.traderservices.connectors.MicroserviceAuthConnector
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import java.util.UUID
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import play.api.Logger
 import uk.gov.hmrc.traderservices.connectors.ApiError
 import play.api.libs.json.Json
-import akka.actor.ActorRef
-import akka.pattern.ask
-import akka.util.Timeout
-import akka.actor.Props
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
+import org.apache.pekko.actor.Props
 
 @Singleton
 class FileTransferController @Inject() (
@@ -60,14 +60,11 @@ class FileTransferController @Inject() (
           executeSingleFileTransfer[Result](
             fileTransferRequest
               .copy(
-                correlationId = fileTransferRequest.correlationId
-                  .orElse(request.headers.get("X-Correlation-Id"))
-                  .orElse(
-                    request.headers
-                      .get("X-Request-Id")
-                      .map(_.takeRight(36))
-                  )
-                  .orElse(Some(UUID.randomUUID().toString())),
+                correlationId = Some(
+                  fileTransferRequest.correlationId
+                    .orElse(request.headers.get("X-Correlation-Id"))
+                    .getOrElse(UUID.randomUUID().toString())
+                ),
                 requestId = hc.requestId.map(_.value)
               ),
             (httpStatus: Int, httpBody: Option[String], fileTransferRequest: FileTransferRequest) =>
@@ -108,10 +105,8 @@ class FileTransferController @Inject() (
     Action.async(parseTolerantTextUtf8) { implicit request =>
       withAuthorised {
         withPayload[MultiFileTransferRequest] { fileTransferRequest =>
-          val requestId: String = request.headers
-            .get("X-Request-Id")
-            .map(_.takeRight(36))
-            .getOrElse(UUID.randomUUID().toString())
+          val requestId: String = UUID.randomUUID().toString()
+          val correlationId: String = request.headers.get("X-Correlation-Id").getOrElse(UUID.randomUUID().toString)
 
           val auditFunction: FileTransferActor.AuditFunction =
             auditService.auditMultipleFilesTransmission(fileTransferRequest)
@@ -132,6 +127,7 @@ class FileTransferController @Inject() (
               Props(
                 classOf[FileTransferActor],
                 fileTransferRequest.conversationId,
+                correlationId,
                 fileTransferRequest.caseReferenceNumber,
                 fileTransferRequest.applicationName,
                 fileTransferRequest.metadata,

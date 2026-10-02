@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package uk.gov.hmrc.traderservices.support
 
 import java.nio.charset.Charset
 
-import akka.stream.Materializer
-import akka.util.ByteString
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.util.ByteString
 import org.scalatest.OptionValues
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
@@ -34,7 +34,7 @@ trait UnitSpec extends AnyWordSpec with Matchers with OptionValues {
   import scala.concurrent.duration._
   import scala.concurrent.{Await, Future}
 
-  implicit val defaultTimeout: FiniteDuration = 5 seconds
+  implicit val defaultTimeout: FiniteDuration = 5.seconds
 
   implicit def extractAwait[A](future: Future[A]): A = await[A](future)
 

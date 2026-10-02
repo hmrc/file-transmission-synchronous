@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,13 @@
 import com.google.inject.AbstractModule
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http._
 import uk.gov.hmrc.traderservices.connectors.MicroserviceAuthConnector
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import com.google.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import com.google.inject.name.Named
 import scala.util.matching.Regex
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.hooks.HttpHook
 import com.typesafe.config.Config
@@ -37,8 +36,6 @@ class MicroserviceModule(val environment: Environment, val configuration: Config
     val appName = "file-transmission-synchronous"
     Logger(getClass).info(s"Starting microservice : $appName : in mode : ${environment.mode}")
 
-    bind(classOf[HttpGet]).to(classOf[CustomHttpClient])
-    bind(classOf[HttpPost]).to(classOf[CustomHttpClient])
     bind(classOf[AuthConnector]).to(classOf[MicroserviceAuthConnector])
   }
 }
