@@ -1,9 +1,9 @@
 import uk.gov.hmrc.{DefaultBuildSettings, SbtAutoBuildPlugin}
 
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion := "3.3.9"
 ThisBuild / majorVersion := 0
 
-val bootstrapVersion = "10.7.0"
+val bootstrapVersion = "10.8.0"
 
 lazy val scoverageSettings = {
   import scoverage.ScoverageKeys
@@ -37,7 +37,7 @@ lazy val root = (project in file("."))
     name := "file-transmission-synchronous",
     organization := "uk.gov.hmrc",
     scalacOptions += "-Wconf:src=routes/.*:s",
-    scalacOptions += "-Wconf:cat=unused-imports&src=html/.*:s",
+    scalacOptions += "-Wconf:msg=unused import&src=html/.*:s",
     PlayKeys.playDefaultPort := 10003,
     libraryDependencies ++= compileDeps ++ testDeps("test"),
     scoverageSettings,
