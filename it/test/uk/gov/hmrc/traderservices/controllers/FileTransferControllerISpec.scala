@@ -21,7 +21,7 @@ import org.apache.pekko.util.ByteString
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.Json
-import play.api.libs.ws.{BodyWritable, InMemoryBody, WSClient}
+import play.api.libs.ws.{BodyWritable, InMemoryBody, WSClient, writeableOf_JsValue}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.FileTransferRequest
 import uk.gov.hmrc.traderservices.stubs._

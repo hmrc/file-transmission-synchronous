@@ -19,6 +19,7 @@ package uk.gov.hmrc.traderservices.stubs
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.http.Fault
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import uk.gov.hmrc.traderservices.models._
 import uk.gov.hmrc.traderservices.support.WireMockSupport
@@ -28,7 +29,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 import java.{util => ju}
 
-trait MultiFileTransferStubs extends FileTransferStubs {
+trait MultiFileTransferStubs extends FileTransferStubs with Eventually {
   me: WireMockSupport =>
 
   def givenMultiFileTransferSucceeds(
@@ -165,10 +166,12 @@ trait MultiFileTransferStubs extends FileTransferStubs {
     )
 
   def verifyCallbackHasHappened(callbackUrl: String, times: Int): Unit =
-    verify(
-      times,
-      postRequestedFor(urlEqualTo(callbackUrl))
-    )
+    eventually {
+      verify(
+        times,
+        postRequestedFor(urlEqualTo(callbackUrl))
+      )
+    }
 
   def givenMultiFileTransferSucceeds(
     caseReferenceNumber: String,

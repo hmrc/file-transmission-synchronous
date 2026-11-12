@@ -20,7 +20,7 @@ import com.github.tomakehurst.wiremock.http.Fault
 import org.scalatest.Suite
 import org.scalatestplus.play.ServerProvider
 import play.api.libs.json.{JsString, Json}
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.{WSClient, writeableOf_JsValue}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.traderservices.models.{FileTransferResult, MultiFileTransferRequest, MultiFileTransferResult}
 import uk.gov.hmrc.traderservices.services.FileTransmissionAuditEvent
